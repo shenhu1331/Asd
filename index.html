@@ -1,30 +1,80 @@
-async function searchModel() {
-    const input = document.getElementById('query').value;
-    const loader = document.getElementById('loader');
-    const modelViewer = document.getElementById('main-model');
-    
-    if(!input) return;
-    loader.style.display = 'block';
-    
-    try {
-        // 1. Шукаємо .glb файли у відкритих репозиторіях GitHub
-        const response = await fetch(`https://api.github.com/search/code?q=${input}+extension:glb`);
-        const data = await response.json();
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bambu 3D Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bambu-green: #00FF41; --bg-dark: #0A0A0B; --panel-bg: rgba(26, 26, 28, 0.9); }
+        body { background-color: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
         
-        if (data.items && data.items.length > 0) {
-            // 2. Беремо посилання на перший знайдений файл
-            const fileData = data.items[0];
-            const rawUrl = `https://raw.githubusercontent.com/${fileData.repository.full_name}/master/${fileData.path}`;
+        .header { text-align: center; margin-bottom: 15px; }
+        .header h1 { font-size: 18px; color: var(--bambu-green); margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+
+        .search-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-input { flex: 1; padding: 12px; background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; outline: none; }
+        .search-input:focus { border-color: var(--bambu-green); }
+        .search-btn { padding: 12px 20px; background: var(--bambu-green); border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+
+        .viewer-container { flex: 1; background: #000; border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); position: relative; }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        .placeholder-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #555; width: 80%; }
+
+        .order-panel { margin-top: 15px; padding: 15px; background: var(--panel-bg); border-radius: 15px; text-align: center; }
+        .order-btn { width: 100%; padding: 15px; background: var(--bambu-green); color: black; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; box-shadow: 0 5px 15px rgba(0, 255, 65, 0.3); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Bambu A1 Studio</h1>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="query" class="search-input" placeholder="Напиши: Shark, Dragon, Car...">
+        <button class="search-btn" onclick="searchModel()">ШУКАТИ</button>
+    </div>
+
+    <div class="viewer-container" id="container">
+        <div class="placeholder-text">
+            Введіть назву моделі англійською мовою, щоб переглянути її в 3D
+        </div>
+    </div>
+
+    <div class="order-panel">
+        <button class="order-btn" onclick="sendOrder()">ЗАМОВИТИ ДРУК ЦІЄЇ МОДЕЛІ</button>
+    </div>
+
+    <script>
+        function searchModel() {
+            const query = document.getElementById('query').value;
+            const container = document.getElementById('container');
             
-            // 3. Завантажуємо в плеєр
-            modelViewer.src = rawUrl;
-            console.log("Модель знайдена:", rawUrl);
-        } else {
-            alert("Нічого не знайдено. Спробуйте англійською, наприклад: 'Dragon' або 'Vase'");
+            if(!query) {
+                alert("Будь ласка, введіть назву");
+                return;
+            }
+
+            // Використовуємо публічний пошуковий інтерфейс Sketchfab
+            // Це найнадійніший спосіб без API-ключів
+            container.innerHTML = `
+                <iframe 
+                    src="https://sketchfab.com/search?q=${encodeURIComponent(query)}&type=models&sort_by=-relevance" 
+                    allow="autoplay; fullscreen; vr" 
+                    mozallowfullscreen="true" 
+                    webkitallowfullscreen="true">
+                </iframe>`;
         }
-    } catch (e) {
-        alert("Помилка пошуку. Спробуйте пізніше.");
-    } finally {
-        loader.style.display = 'none';
-    }
-}
+
+        function sendOrder() {
+            const query = document.getElementById('query').value;
+            const message = `Привіт! Я хочу замовити друк моделі: ${query || 'обраної в каталозі'}. Чекаю на розрахунок вартості!`;
+            
+            // Відкриваємо чат з тобою (заміни YOUR_NICKNAME на свій юзернейм в TG)
+            window.open(`https://t.me/YOUR_NICKNAME?text=${encodeURIComponent(message)}`, '_blank');
+        }
+    </script>
+</body>
+</html>
