@@ -12,18 +12,18 @@
         .header { text-align: center; margin-bottom: 15px; }
         .header h1 { font-size: 18px; color: var(--bambu-green); margin: 0; text-transform: uppercase; letter-spacing: 2px; }
 
-        .search-box { display: flex; gap: 10px; margin-bottom: 15px; }
-        .search-input { flex: 1; padding: 12px; background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; outline: none; }
-        .search-input:focus { border-color: var(--bambu-green); }
-        .search-btn { padding: 12px 20px; background: var(--bambu-green); border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .search-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .search-input { padding: 15px; background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; outline: none; font-size: 16px; }
+        .search-btn { padding: 15px; background: var(--bambu-green); border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: black; font-size: 16px; }
 
-        .viewer-container { flex: 1; background: #000; border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); position: relative; }
-        iframe { width: 100%; height: 100%; border: none; }
+        .info-card { flex: 1; background: var(--panel-bg); border-radius: 20px; padding: 20px; border: 1px dashed var(--bambu-green); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        
+        .step { margin-bottom: 20px; }
+        .step-num { background: var(--bambu-green); color: black; width: 30px; height: 30px; display: inline-block; border-radius: 50%; line-height: 30px; font-weight: bold; margin-bottom: 10px; }
 
-        .placeholder-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #555; width: 80%; }
-
-        .order-panel { margin-top: 15px; padding: 15px; background: var(--panel-bg); border-radius: 15px; text-align: center; }
-        .order-btn { width: 100%; padding: 15px; background: var(--bambu-green); color: black; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; box-shadow: 0 5px 15px rgba(0, 255, 65, 0.3); }
+        .order-panel { margin-top: 15px; }
+        .order-btn { width: 100%; padding: 18px; background: #555; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        .order-btn.active { background: var(--bambu-green); color: black; box-shadow: 0 5px 15px rgba(0, 255, 65, 0.3); }
     </style>
 </head>
 <body>
@@ -33,46 +33,57 @@
     </div>
 
     <div class="search-box">
-        <input type="text" id="query" class="search-input" placeholder="Напиши: Shark, Dragon, Car...">
-        <button class="search-btn" onclick="searchModel()">ШУКАТИ</button>
+        <input type="text" id="query" class="search-input" placeholder="Напиши: Dragon, Car, Batman...">
+        <button class="search-btn" onclick="openSearch()">ЗНАЙТИ 3D МОДЕЛЬ 🔍</button>
     </div>
 
-    <div class="viewer-container" id="container">
-        <div class="placeholder-text">
-            Введіть назву моделі англійською мовою, щоб переглянути її в 3D
+    <div class="info-card">
+        <div class="step">
+            <span class="step-num">1</span>
+            <p>Натисни "Знайти", щоб відкрити базу моделей</p>
         </div>
+        <div class="step">
+            <span class="step-num">2</span>
+            <p>Обери модель, яка подобається, та скопіюй посилання</p>
+        </div>
+        <div class="step">
+            <span class="step-num">3</span>
+            <p>Повернись сюди і встав посилання нижче</p>
+        </div>
+        
+        <input type="text" id="link" class="search-input" style="width: 80%" placeholder="Встав посилання сюди..." oninput="checkLink()">
     </div>
 
     <div class="order-panel">
-        <button class="order-btn" onclick="sendOrder()">ЗАМОВИТИ ДРУК ЦІЄЇ МОДЕЛІ</button>
+        <button id="finalBtn" class="order-btn" onclick="sendOrder()" disabled>ЗАМОВИТИ ДРУК</button>
     </div>
 
     <script>
-        function searchModel() {
+        function openSearch() {
             const query = document.getElementById('query').value;
-            const container = document.getElementById('container');
-            
             if(!query) {
-                alert("Будь ласка, введіть назву");
+                alert("Спочатку напиши назву моделі");
                 return;
             }
+            // Відкриваємо пошук у новому вікні, оскільки iframe блокується
+            window.open(`https://sketchfab.com/search?q=${encodeURIComponent(query)}&type=models`, '_blank');
+        }
 
-            // Використовуємо публічний пошуковий інтерфейс Sketchfab
-            // Це найнадійніший спосіб без API-ключів
-            container.innerHTML = `
-                <iframe 
-                    src="https://sketchfab.com/search?q=${encodeURIComponent(query)}&type=models&sort_by=-relevance" 
-                    allow="autoplay; fullscreen; vr" 
-                    mozallowfullscreen="true" 
-                    webkitallowfullscreen="true">
-                </iframe>`;
+        function checkLink() {
+            const link = document.getElementById('link').value;
+            const btn = document.getElementById('finalBtn');
+            if(link.includes('sketchfab.com') || link.includes('http')) {
+                btn.classList.add('active');
+                btn.disabled = false;
+                btn.innerText = "ПІДТВЕРДИТИ ЗАМОВЛЕННЯ 🚀";
+            }
         }
 
         function sendOrder() {
-            const query = document.getElementById('query').value;
-            const message = `Привіт! Я хочу замовити друк моделі: ${query || 'обраної в каталозі'}. Чекаю на розрахунок вартості!`;
+            const link = document.getElementById('link').value;
+            const message = `Привіт! Хочу роздрукувати цю модель на Bambu A1: ${link}`;
             
-            // Відкриваємо чат з тобою (заміни YOUR_NICKNAME на свій юзернейм в TG)
+            // ЗАМІНИ 'YOUR_NICKNAME' НА СВІЙ НІК БЕЗ @
             window.open(`https://t.me/YOUR_NICKNAME?text=${encodeURIComponent(message)}`, '_blank');
         }
     </script>
