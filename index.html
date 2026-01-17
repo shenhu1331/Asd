@@ -1,65 +1,30 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-    <style>
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow-x: hidden; }
-        .header { padding: 20px; text-align: center; font-weight: bold; font-size: 20px; background: #111; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
-        .card { background: #1a1a1a; border-radius: 15px; overflow: hidden; border: 1px solid #333; text-align: center; padding-bottom: 10px; }
-        .card img { width: 100%; height: 120px; object-fit: cover; }
-        .card h3 { font-size: 14px; margin: 10px 0; }
-        .btn { background: #0088cc; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; }
+async function searchModel() {
+    const input = document.getElementById('query').value;
+    const loader = document.getElementById('loader');
+    const modelViewer = document.getElementById('main-model');
+    
+    if(!input) return;
+    loader.style.display = 'block';
+    
+    try {
+        // 1. Шукаємо .glb файли у відкритих репозиторіях GitHub
+        const response = await fetch(`https://api.github.com/search/code?q=${input}+extension:glb`);
+        const data = await response.json();
         
-        /* Вікно 3D огляду */
-        #viewer-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 100; }
-        .close-btn { position: absolute; top: 20px; right: 20px; z-index: 101; background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px; border-radius: 50%; }
-        model-viewer { width: 100%; height: 100%; }
-    </style>
-</head>
-<body>
-
-    <div id="shop">
-        <div class="header">TOP 10 BESTSELLERS</div>
-        <div class="grid" id="grid">
-            </div>
-    </div>
-
-    <div id="viewer-container">
-        <button class="close-btn" onclick="closeViewer()">✕</button>
-        <model-viewer id="mv" ar camera-controls shadow-intensity="1" auto-rotate></model-viewer>
-    </div>
-
-    <script>
-        // Твоя база ТОП-10 моделей (Назви, Картинки, Файли)
-        const models = [
-            { n: "Batman Figure", img: "https://placehold.co/400x400/222/white?text=Batman", file: "https://modelviewer.dev/shared-assets/models/Astronaut.glb" },
-            { n: "DualSense Stand", img: "https://placehold.co/400x400/222/white?text=Stand", file: "https://modelviewer.dev/shared-assets/models/Astronaut.glb" },
-            { n: "Articulated Dragon", img: "https://placehold.co/400x400/222/white?text=Dragon", file: "https://modelviewer.dev/shared-assets/models/Astronaut.glb" },
-            { n: "Skull Pot", img: "https://placehold.co/400x400/222/white?text=Skull", file: "https://modelviewer.dev/shared-assets/models/Astronaut.glb" }
-        ];
-
-        const grid = document.getElementById('grid');
-        models.forEach(m => {
-            grid.innerHTML += `
-                <div class="card">
-                    <img src="${m.img}">
-                    <h3>${m.n}</h3>
-                    <button class="btn" onclick="openViewer('${m.file}')">Примірити AR</button>
-                </div>
-            `;
-        });
-
-        function openViewer(file) {
-            document.getElementById('mv').src = file;
-            document.getElementById('viewer-container').style.display = 'block';
+        if (data.items && data.items.length > 0) {
+            // 2. Беремо посилання на перший знайдений файл
+            const fileData = data.items[0];
+            const rawUrl = `https://raw.githubusercontent.com/${fileData.repository.full_name}/master/${fileData.path}`;
+            
+            // 3. Завантажуємо в плеєр
+            modelViewer.src = rawUrl;
+            console.log("Модель знайдена:", rawUrl);
+        } else {
+            alert("Нічого не знайдено. Спробуйте англійською, наприклад: 'Dragon' або 'Vase'");
         }
-
-        function closeViewer() {
-            document.getElementById('viewer-container').style.display = 'none';
-        }
-    </script>
-</body>
-</html>
+    } catch (e) {
+        alert("Помилка пошуку. Спробуйте пізніше.");
+    } finally {
+        loader.style.display = 'none';
+    }
+}
