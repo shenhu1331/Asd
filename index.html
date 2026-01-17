@@ -3,83 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bambu 3D Lab</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+    <title>Bambu Design</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --green: #00FF41; --dark: #0A0A0B; }
-        body { background: var(--dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        .header { text-align: center; padding: 10px; border-bottom: 1px solid #222; }
-        h1 { font-size: 16px; color: var(--green); margin: 0; text-transform: uppercase; }
+        /* 1. Основа дизайну */
+        body {
+            background-color: #0A0A0B;
+            color: #FFFFFF;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-        /* Вікно 3D перегляду */
-        .viewer-container { flex: 1; position: relative; margin: 15px 0; background: radial-gradient(circle, #1a1a1c 0%, #000 100%); border-radius: 20px; border: 1px solid #333; overflow: hidden; }
-        model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+        /* 2. Заголовок у стилі Bambu */
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
 
-        .search-area { background: #1a1a1c; padding: 15px; border-radius: 20px; }
-        .input-group { display: flex; gap: 8px; }
-        input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #000; color: white; outline: none; }
-        input:focus { border-color: var(--green); }
-        
-        .btn { background: var(--green); color: black; border: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .order-btn { width: 100%; margin-top: 10px; padding: 15px; background: white; color: black; font-size: 16px; }
+        .header h1 {
+            color: #00FF41;
+            font-size: 22px;
+            letter-spacing: 3px;
+            margin: 0;
+            text-transform: uppercase;
+        }
 
-        #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; color: var(--green); }
+        /* 3. Контейнер для 3D (поки порожній, але зі стилем) */
+        .preview-window {
+            width: 100%;
+            height: 350px;
+            background: linear-gradient(145deg, #161618, #0a0a0b);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .preview-window::after {
+            content: "3D PREVIEW AREA";
+            color: #333;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        /* 4. Поле введення */
+        .input-box {
+            width: 100%;
+            background: #1A1A1C;
+            border: 1px solid #333;
+            border-radius: 15px;
+            padding: 15px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .input-box:focus {
+            border-color: #00FF41;
+        }
+
+        /* 5. Головна кнопка */
+        .main-btn {
+            width: 100%;
+            background: #00FF41;
+            color: #000;
+            border: none;
+            padding: 18px;
+            border-radius: 15px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>BAMBU A1 STUDIO 3D</h1>
+        <h1>Bambu Studio</h1>
     </div>
 
-    <div class="viewer-container">
-        <div id="loader">Завантаження...</div>
-        <model-viewer id="view" 
-            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
-            auto-rotate camera-controls shadow-intensity="1" touch-action="pan-y">
-        </model-viewer>
-    </div>
-
-    <div class="search-area">
-        <div class="input-group">
-            <input type="text" id="modelInput" placeholder="Напиши: Dragon, Car, Helmet...">
-            <button class="btn" onclick="search()">ПОШУК</button>
+    <div class="preview-window">
         </div>
-        <button class="btn order-btn" onclick="sendOrder()">ЗАМОВИТИ ЦЮ МОДЕЛЬ</button>
-    </div>
 
-    <script>
-        // База прямих посилань на безкоштовні моделі (щоб працювало без ключів)
-        const models = {
-            "dragon": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb",
-            "car": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb",
-            "helmet": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
-            "box": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb",
-            "duck": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb",
-            "avocado": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF-Binary/Avocado.glb"
-        };
+    <input type="text" class="input-box" placeholder="Що надрукуємо сьогодні?">
+    
+    <button class="main-btn">Замовити 3D друк</button>
 
-        function search() {
-            const input = document.getElementById('modelInput').value.toLowerCase().trim();
-            const viewer = document.getElementById('view');
-            const loader = document.getElementById('loader');
-
-            if (models[input]) {
-                loader.style.display = "block";
-                viewer.src = models[input];
-                viewer.addEventListener('load', () => { loader.style.display = "none"; });
-            } else {
-                alert("Ця модель ще не завантажена в базу. Спробуй: Dragon, Car, Helmet або Duck");
-            }
-        }
-
-        function sendOrder() {
-            const currentModel = document.getElementById('modelInput').value || "Astronaut";
-            const myTg = "YOUR_NICKNAME"; // ЗАМІНИ НА СВІЙ НІК
-            window.open(`https://t.me/${myTg}?text=Привіт! Замовляю 3D друк моделі: ${currentModel}`, '_blank');
-        }
-    </script>
 </body>
 </html>
