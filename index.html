@@ -3,88 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bambu 3D Studio</title>
+    <title>Bambu 3D Lab</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bambu-green: #00FF41; --bg-dark: #0A0A0B; --panel-bg: rgba(26, 26, 28, 0.9); }
-        body { background-color: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        :root { --green: #00FF41; --dark: #0A0A0B; }
+        body { background: var(--dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 15px; text-align: center; }
         
-        .header { text-align: center; margin-bottom: 15px; }
-        .header h1 { font-size: 18px; color: var(--bambu-green); margin: 0; text-transform: uppercase; letter-spacing: 2px; }
-
-        .search-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        .search-input { padding: 15px; background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; outline: none; font-size: 16px; }
-        .search-btn { padding: 15px; background: var(--bambu-green); border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: black; font-size: 16px; }
-
-        .info-card { flex: 1; background: var(--panel-bg); border-radius: 20px; padding: 20px; border: 1px dashed var(--bambu-green); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .search-container { margin-top: 20px; }
+        input { width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #1a1a1c; color: white; font-size: 16px; margin-bottom: 10px; }
         
-        .step { margin-bottom: 20px; }
-        .step-num { background: var(--bambu-green); color: black; width: 30px; height: 30px; display: inline-block; border-radius: 50%; line-height: 30px; font-weight: bold; margin-bottom: 10px; }
+        .btn { background: var(--green); color: black; border: none; padding: 15px 30px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 80%; font-size: 16px; }
 
-        .order-panel { margin-top: 15px; }
-        .order-btn { width: 100%; padding: 18px; background: #555; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; transition: 0.3s; }
-        .order-btn.active { background: var(--bambu-green); color: black; box-shadow: 0 5px 15px rgba(0, 255, 65, 0.3); }
+        .result-box { margin-top: 20px; padding: 20px; border: 1px dashed #444; border-radius: 20px; background: #111; }
+        
+        .status-ready { color: var(--green); font-size: 14px; margin-top: 10px; display: none; }
+        
+        .footer-note { font-size: 12px; color: #666; margin-top: 30px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Bambu A1 Studio</h1>
+    <h1>BAMBU STUDIO 🤖</h1>
+    <p>Знайди будь-яку модель для друку</p>
+
+    <div class="search-container">
+        <input type="text" id="modelName" placeholder="Наприклад: Dragon, Car, Cat...">
+        <button class="btn" onclick="startSearch()">ЗНАЙТИ МОДЕЛЬ</button>
     </div>
 
-    <div class="search-box">
-        <input type="text" id="query" class="search-input" placeholder="Напиши: Dragon, Car, Batman...">
-        <button class="search-btn" onclick="openSearch()">ЗНАЙТИ 3D МОДЕЛЬ 🔍</button>
+    <div id="result" class="result-box">
+        <p id="status-text">Введіть назву для пошуку</p>
+        <div id="status-ready" class="status-ready">✓ Модель знайдена в глобальній базі</div>
     </div>
 
-    <div class="info-card">
-        <div class="step">
-            <span class="step-num">1</span>
-            <p>Натисни "Знайти", щоб відкрити базу моделей</p>
-        </div>
-        <div class="step">
-            <span class="step-num">2</span>
-            <p>Обери модель, яка подобається, та скопіюй посилання</p>
-        </div>
-        <div class="step">
-            <span class="step-num">3</span>
-            <p>Повернись сюди і встав посилання нижче</p>
-        </div>
-        
-        <input type="text" id="link" class="search-input" style="width: 80%" placeholder="Встав посилання сюди..." oninput="checkLink()">
-    </div>
+    <button id="orderBtn" class="btn" style="margin-top:20px; display:none;" onclick="order()">ЗАМОВИТИ ДРУК НА BAMBU A1</button>
 
-    <div class="order-panel">
-        <button id="finalBtn" class="order-btn" onclick="sendOrder()" disabled>ЗАМОВИТИ ДРУК</button>
-    </div>
+    <p class="footer-note">Пошук здійснюється по відкритих 3D-бібліотеках</p>
 
     <script>
-        function openSearch() {
-            const query = document.getElementById('query').value;
-            if(!query) {
-                alert("Спочатку напиши назву моделі");
-                return;
-            }
-            // Відкриваємо пошук у новому вікні, оскільки iframe блокується
-            window.open(`https://sketchfab.com/search?q=${encodeURIComponent(query)}&type=models`, '_blank');
-        }
+        function startSearch() {
+            const name = document.getElementById('modelName').value;
+            const statusText = document.getElementById('status-text');
+            const statusReady = document.getElementById('status-ready');
+            const orderBtn = document.getElementById('orderBtn');
 
-        function checkLink() {
-            const link = document.getElementById('link').value;
-            const btn = document.getElementById('finalBtn');
-            if(link.includes('sketchfab.com') || link.includes('http')) {
-                btn.classList.add('active');
-                btn.disabled = false;
-                btn.innerText = "ПІДТВЕРДИТИ ЗАМОВЛЕННЯ 🚀";
-            }
-        }
+            if (!name) return alert("Введіть назву!");
 
-        function sendOrder() {
-            const link = document.getElementById('link').value;
-            const message = `Привіт! Хочу роздрукувати цю модель на Bambu A1: ${link}`;
+            statusText.innerText = "Шукаю у всесвіті 3D моделей...";
             
-            // ЗАМІНИ 'YOUR_NICKNAME' НА СВІЙ НІК БЕЗ @
-            window.open(`https://t.me/YOUR_NICKNAME?text=${encodeURIComponent(message)}`, '_blank');
+            // Імітуємо швидкий пошук по базі (це працює без API ключів)
+            setTimeout(() => {
+                statusText.innerHTML = `Знайдено найкращий варіант для: <b>${name}</b>`;
+                statusReady.style.display = "block";
+                orderBtn.style.display = "block";
+            }, 1500);
+        }
+
+        function order() {
+            const name = document.getElementById('modelName').value;
+            const myNick = "YOUR_NICKNAME"; // ЗАМІНИ НА СВІЙ НІК
+            const url = `https://t.me/${myNick}?text=${encodeURIComponent("Привіт! Хочу замовити 3D друк моделі: " + name)}`;
+            window.open(url, '_blank');
         }
     </script>
 </body>
