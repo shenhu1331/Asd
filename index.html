@@ -4,66 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bambu 3D Lab</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --green: #00FF41; --dark: #0A0A0B; }
-        body { background: var(--dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 15px; text-align: center; }
+        body { background: var(--dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .search-container { margin-top: 20px; }
-        input { width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #1a1a1c; color: white; font-size: 16px; margin-bottom: 10px; }
-        
-        .btn { background: var(--green); color: black; border: none; padding: 15px 30px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 80%; font-size: 16px; }
+        .header { text-align: center; padding: 10px; border-bottom: 1px solid #222; }
+        h1 { font-size: 16px; color: var(--green); margin: 0; text-transform: uppercase; }
 
-        .result-box { margin-top: 20px; padding: 20px; border: 1px dashed #444; border-radius: 20px; background: #111; }
+        /* Вікно 3D перегляду */
+        .viewer-container { flex: 1; position: relative; margin: 15px 0; background: radial-gradient(circle, #1a1a1c 0%, #000 100%); border-radius: 20px; border: 1px solid #333; overflow: hidden; }
+        model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+
+        .search-area { background: #1a1a1c; padding: 15px; border-radius: 20px; }
+        .input-group { display: flex; gap: 8px; }
+        input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #000; color: white; outline: none; }
+        input:focus { border-color: var(--green); }
         
-        .status-ready { color: var(--green); font-size: 14px; margin-top: 10px; display: none; }
-        
-        .footer-note { font-size: 12px; color: #666; margin-top: 30px; }
+        .btn { background: var(--green); color: black; border: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .order-btn { width: 100%; margin-top: 10px; padding: 15px; background: white; color: black; font-size: 16px; }
+
+        #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; color: var(--green); }
     </style>
 </head>
 <body>
 
-    <h1>BAMBU STUDIO 🤖</h1>
-    <p>Знайди будь-яку модель для друку</p>
-
-    <div class="search-container">
-        <input type="text" id="modelName" placeholder="Наприклад: Dragon, Car, Cat...">
-        <button class="btn" onclick="startSearch()">ЗНАЙТИ МОДЕЛЬ</button>
+    <div class="header">
+        <h1>BAMBU A1 STUDIO 3D</h1>
     </div>
 
-    <div id="result" class="result-box">
-        <p id="status-text">Введіть назву для пошуку</p>
-        <div id="status-ready" class="status-ready">✓ Модель знайдена в глобальній базі</div>
+    <div class="viewer-container">
+        <div id="loader">Завантаження...</div>
+        <model-viewer id="view" 
+            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
+            auto-rotate camera-controls shadow-intensity="1" touch-action="pan-y">
+        </model-viewer>
     </div>
 
-    <button id="orderBtn" class="btn" style="margin-top:20px; display:none;" onclick="order()">ЗАМОВИТИ ДРУК НА BAMBU A1</button>
-
-    <p class="footer-note">Пошук здійснюється по відкритих 3D-бібліотеках</p>
+    <div class="search-area">
+        <div class="input-group">
+            <input type="text" id="modelInput" placeholder="Напиши: Dragon, Car, Helmet...">
+            <button class="btn" onclick="search()">ПОШУК</button>
+        </div>
+        <button class="btn order-btn" onclick="sendOrder()">ЗАМОВИТИ ЦЮ МОДЕЛЬ</button>
+    </div>
 
     <script>
-        function startSearch() {
-            const name = document.getElementById('modelName').value;
-            const statusText = document.getElementById('status-text');
-            const statusReady = document.getElementById('status-ready');
-            const orderBtn = document.getElementById('orderBtn');
+        // База прямих посилань на безкоштовні моделі (щоб працювало без ключів)
+        const models = {
+            "dragon": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb",
+            "car": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb",
+            "helmet": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+            "box": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb",
+            "duck": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb",
+            "avocado": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF-Binary/Avocado.glb"
+        };
 
-            if (!name) return alert("Введіть назву!");
+        function search() {
+            const input = document.getElementById('modelInput').value.toLowerCase().trim();
+            const viewer = document.getElementById('view');
+            const loader = document.getElementById('loader');
 
-            statusText.innerText = "Шукаю у всесвіті 3D моделей...";
-            
-            // Імітуємо швидкий пошук по базі (це працює без API ключів)
-            setTimeout(() => {
-                statusText.innerHTML = `Знайдено найкращий варіант для: <b>${name}</b>`;
-                statusReady.style.display = "block";
-                orderBtn.style.display = "block";
-            }, 1500);
+            if (models[input]) {
+                loader.style.display = "block";
+                viewer.src = models[input];
+                viewer.addEventListener('load', () => { loader.style.display = "none"; });
+            } else {
+                alert("Ця модель ще не завантажена в базу. Спробуй: Dragon, Car, Helmet або Duck");
+            }
         }
 
-        function order() {
-            const name = document.getElementById('modelName').value;
-            const myNick = "YOUR_NICKNAME"; // ЗАМІНИ НА СВІЙ НІК
-            const url = `https://t.me/${myNick}?text=${encodeURIComponent("Привіт! Хочу замовити 3D друк моделі: " + name)}`;
-            window.open(url, '_blank');
+        function sendOrder() {
+            const currentModel = document.getElementById('modelInput').value || "Astronaut";
+            const myTg = "YOUR_NICKNAME"; // ЗАМІНИ НА СВІЙ НІК
+            window.open(`https://t.me/${myTg}?text=Привіт! Замовляю 3D друк моделі: ${currentModel}`, '_blank');
         }
     </script>
 </body>
