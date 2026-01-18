@@ -8,51 +8,61 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         :root { --accent: #ffc107; --bg: #0d0d0d; --card-bg: #1a1a1a; }
-        body { background-color: var(--bg); color: #f0f0f0; font-family: sans-serif; }
+        body { background-color: var(--bg); color: #f0f0f0; font-family: 'Segoe UI', sans-serif; }
         .nav-pills .nav-link { color: #888; border-radius: 12px; border: 1px solid #333; margin: 0 5px; }
         .nav-pills .nav-link.active { background-color: var(--accent); color: #000; font-weight: bold; }
         .card { background: var(--card-bg); border: 1px solid #333; border-radius: 15px; height: 100%; transition: 0.3s; }
-        .card:hover { border-color: var(--accent); }
         .img-container { height: 150px; background: #222; border-radius: 15px 15px 0 0; overflow: hidden; position: relative; }
         .img-container img { width: 100%; height: 100%; object-fit: cover; }
         .badge-tag { position: absolute; top: 10px; left: 10px; font-size: 10px; padding: 4px 8px; }
         .btn-stl { background: var(--accent); color: #000; font-weight: bold; border-radius: 10px; }
+        .search-box { background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 12px; padding: 12px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container py-3">
-    <h4 class="text-center mb-4 text-warning fw-bold">UA 3D АГРЕГАТОР</h4>
+    <h4 class="text-center mb-4 text-warning fw-bold">3D UA HUB 📦</h4>
 
     <ul class="nav nav-pills mb-4 justify-content-center" id="pills-tab" role="tablist">
         <li class="nav-item">
-            <button class="nav-link active" id="tab-ua" data-bs-toggle="pill" data-bs-target="#content-ua">🇺🇦 Мої моделі</button>
+            <button class="nav-link active" id="tab-ua" data-bs-toggle="pill" data-bs-target="#content-ua">🇺🇦 UA База</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="tab-trends" data-bs-toggle="pill" data-bs-target="#content-trends">🔥 Світові тренди</button>
+            <button class="nav-link" id="tab-trends" data-bs-toggle="pill" data-bs-target="#content-trends">🌍 Світовий Пошук</button>
         </li>
     </ul>
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="content-ua">
+            <input type="text" id="uaSearch" class="form-control search-box" placeholder="Пошук в моїй базі...">
             <div id="catalog-ua" class="row g-3">
                 <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
             </div>
         </div>
-        <div class="tab-pane fade" id="content-trends">
-            <div id="catalog-trends" class="row g-3">
-                <div class="text-center py-5 text-muted">Натисніть "Світові тренди" для завантаження</div>
+
+        <div class="tab-pane fade text-center" id="content-trends">
+            <div class="py-4">
+                <h5>Що знайти у світі?</h5>
+                <p class="small text-muted text-center">Введіть запит українською, ми знайдемо на Thingiverse та Printables</p>
+                <div class="input-group mb-3 px-3">
+                    <input type="text" id="worldSearchInput" class="form-control search-box mb-0" placeholder="Напр: Кіт, Шестерня, Кронштейн">
+                    <button class="btn btn-warning" type="button" id="btnWorldSearch"><i class="bi bi-search"></i></button>
+                </div>
+                <div id="world-results" class="row g-3 mt-2 text-start">
+                    <div class="col-12 p-4 text-muted small">Введіть назву моделі вище ☝️</div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // 1. ВСТАВ СВІЙ ID ТАБЛИЦІ
+    // 1. ЗАМІНИ ЦЕЙ ID НА СВІЙ
     const SHEET_ID = 'ВСТАВ_ID_ТАБЛИЦІ_ТУТ'; 
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
-    // 2. ЗАВАНТАЖЕННЯ UA БАЗИ
+    // Функція завантаження UA Бази
     async function loadUA() {
         const container = document.getElementById('catalog-ua');
         try {
@@ -60,69 +70,80 @@
             const text = await res.text();
             const json = JSON.parse(text.substr(47).slice(0, -2));
             const data = json.table.rows.map(r => ({
-                title: r.c[0]?.v || '3D Модель',
+                title: r.c[0]?.v || 'Модель',
                 link: r.c[3]?.v || '#',
-                img: r.c[4]?.v || 'https://via.placeholder.com/300x200?text=No+Image',
+                img: r.c[4]?.v || 'https://via.placeholder.com/300x200?text=3D+Model',
                 badge: 'UA'
             }));
+            window.uaData = data; // Зберігаємо для пошуку
             render(data, 'catalog-ua');
         } catch (e) {
-            container.innerHTML = `<div class="text-center text-danger small">Помилка Google Таблиці. Перевірте публікацію.</div>`;
+            container.innerHTML = `<div class="text-center text-danger">Помилка таблиці. Перевір публікацію.</div>`;
         }
     }
 
-    // 3. ЗАВАНТАЖЕННЯ ТРЕНДІВ (ЧЕРЕЗ СТАБІЛЬНИЙ API ПЕРЕКЛАДАЧ)
-    async function loadTrends() {
-        const container = document.getElementById('catalog-trends');
-        container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div><br><small>З'єднуюсь зі світовою базою...</small></div>';
-        
-        try {
-            // Використовуємо RSS2JSON як стабільний шлюз
-            const rssUrl = encodeURIComponent('https://www.thingiverse.com/rss/popular');
-            const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
-            const data = await res.json();
-            
-            if (data.status !== 'ok') throw new Error('RSS Error');
-
-            let results = [];
-            for (let item of data.items.slice(0, 12)) {
-                // Витягуємо картинку
-                const imgMatch = item.content.match(/src="([^"]+)"/);
-                const img = imgMatch ? imgMatch[1] : item.thumbnail;
-                
-                // Переклад заголовка (спрощено через Google Translate API)
-                const trRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=uk&dt=t&q=${encodeURIComponent(item.title)}`);
-                const trData = await trRes.json();
-                const ukTitle = trData[0][0][0];
-
-                results.push({ title: ukTitle, link: item.link, img: img, badge: 'TREND' });
-            }
-            render(results, 'catalog-trends');
-        } catch (e) {
-            container.innerHTML = '<div class="text-center text-muted p-4">Сервер трендів тимчасово недоступний. Спробуйте пізніше.</div>';
-        }
-    }
-
+    // Рендер карток
     function render(items, containerId) {
         const container = document.getElementById(containerId);
         container.innerHTML = items.map(item => `
-            <div class="col-6 col-md-4">
+            <div class="col-6 col-md-4 mb-2">
                 <div class="card p-2 shadow-sm">
                     <div class="img-container mb-2">
-                        <span class="badge ${item.badge === 'UA' ? 'bg-primary' : 'bg-danger'} badge-tag">${item.badge}</span>
+                        <span class="badge bg-primary badge-tag">${item.badge}</span>
                         <img src="${item.img}" onerror="this.src='https://via.placeholder.com/300x200?text=3D+Model'">
                     </div>
-                    <div class="px-1">
-                        <div class="text-truncate mb-2 fw-bold" style="font-size: 0.8rem;">${item.title}</div>
-                        <a href="${item.link}" target="_blank" class="btn btn-stl btn-sm w-100">Відкрити</a>
-                    </div>
+                    <div class="text-truncate mb-2 fw-bold" style="font-size: 0.75rem; color: #fff;">${item.title}</div>
+                    <a href="${item.link}" target="_blank" class="btn btn-stl btn-sm w-100">Відкрити</a>
                 </div>
             </div>
         `).join('');
     }
 
+    // СВІТОВИЙ ПОШУК (Логіка Yeggi)
+    document.getElementById('btnWorldSearch').addEventListener('click', async () => {
+        const input = document.getElementById('worldSearchInput').value;
+        if(!input) return;
+
+        const container = document.getElementById('world-results');
+        container.innerHTML = '<div class="text-center py-5 w-100"><div class="spinner-border text-warning"></div><br>Перекладаю та шукаю...</div>';
+
+        // 1. Авто-переклад на англійську
+        const trRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=uk&tl=en&dt=t&q=${encodeURIComponent(input)}`);
+        const trData = await trRes.json();
+        const enQuery = trData[0][0][0];
+
+        // 2. Формуємо посилання на агрегатори
+        const thingiLink = `https://www.thingiverse.com/search?q=${enQuery.replace(' ', '+')}`;
+        const printLink = `https://www.printables.com/search/models?q=${enQuery.replace(' ', '+')}`;
+        const yeggiLink = `https://www.yeggi.com/q/${enQuery.replace(' ', '+')}/`;
+
+        container.innerHTML = `
+            <div class="col-12 mt-3">
+                <p class="small">Результати для: <b>${enQuery}</b></p>
+                <div class="list-group">
+                    <a href="${thingiLink}" target="_blank" class="list-group-item list-group-item-action bg-dark text-white border-secondary mb-2 rounded shadow-sm">
+                        <i class="bi bi-box-seam text-warning me-2"></i> Знайти на <b>Thingiverse</b>
+                    </a>
+                    <a href="${printLink}" target="_blank" class="list-group-item list-group-item-action bg-dark text-white border-secondary mb-2 rounded shadow-sm">
+                        <i class="bi bi-layers text-warning me-2"></i> Знайти на <b>Printables</b>
+                    </a>
+                    <a href="${yeggiLink}" target="_blank" class="list-group-item list-group-item-action bg-dark text-white border-secondary mb-2 rounded shadow-sm">
+                        <i class="bi bi-search text-warning me-2"></i> Відкрити в <b>Yeggi Агрегаторі</b>
+                    </a>
+                </div>
+                <p class="text-muted x-small mt-3 text-center" style="font-size: 11px;">Ми автоматично переклали ваш запит для кращого пошуку</p>
+            </div>
+        `;
+    });
+
+    // Пошук по UA базі
+    document.getElementById('uaSearch').addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+        const filtered = window.uaData.filter(item => item.title.toLowerCase().includes(q));
+        render(filtered, 'catalog-ua');
+    });
+
     loadUA();
-    document.getElementById('tab-trends').addEventListener('click', loadTrends, {once: true});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
