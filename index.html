@@ -2,92 +2,189 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Durger Style Store</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D Order</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #f4f4f5; color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .item-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .badge { background: #eab308; color: #fff; border-radius: 50%; width: 20px; height: 20px; display: flex; items-center; justify-center; font-size: 10px; position: absolute; top: -5px; right: -5px; }
-        .main-btn { background: #eab308; color: #fff; font-weight: bold; border-radius: 8px; width: 100%; padding: 12px; text-transform: uppercase; }
-        .thangs-box { background: #18181b; color: #fff; border-radius: 12px; }
+        :root {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f0f0f0;
+            --tg-theme-button-color: #f4b324; /* Фірмовий жовтий */
+            --tg-theme-button-text-color: #ffffff;
+        }
+
+        body {
+            background-color: var(--tg-theme-secondary-bg-color);
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .item-card {
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+
+        .item-price {
+            font-weight: 700;
+            color: #f4b324;
+            margin-top: 5px;
+        }
+
+        .add-btn {
+            background-color: var(--tg-theme-button-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 6px 20px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 10px;
+            width: 100%;
+            text-transform: uppercase;
+        }
+
+        .badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f4b324;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Стиль пошуку Thangs як частина меню */
+        .thangs-search {
+            background: #222;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 15px;
+            color: white;
+        }
+
+        .search-input {
+            background: #333;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            width: 100%;
+            color: white;
+            outline: none;
+            margin-top: 10px;
+        }
+
+        /* Нижня кнопка "VIEW ORDER" */
+        .main-button-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            background: #ffffff;
+            border-top: 1px solid #e5e5e5;
+            display: none;
+        }
+
+        .view-order-btn {
+            background-color: #f4b324;
+            color: white;
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
     </style>
 </head>
-<body class="p-4">
+<body>
 
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-black italic">3D_DRIVE</h1>
-        <div class="relative">
-            <i data-lucide="shopping-cart"></i>
-            <span id="cart-count" class="hidden badge">0</span>
+    <div class="thangs-search shadow-lg">
+        <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold tracking-widest uppercase opacity-60">Global STL Search</span>
+            <span class="text-yellow-500 font-bold text-xs underline" onclick="searchThangs()">Thangs.com</span>
+        </div>
+        <input id="q" type="text" placeholder="Знайти модель для друку..." class="search-input">
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 p-4 mb-28">
+        <div class="item-card shadow-sm">
+            <div class="text-5xl mb-2">🐉</div>
+            <div class="text-sm font-bold">Flexi Dragon</div>
+            <div class="item-price">400 ₴</div>
+            <button onclick="addToCart('Flexi Dragon', 400)" class="add-btn">ADD</button>
+        </div>
+
+        <div class="item-card shadow-sm">
+            <div class="text-5xl mb-2">🎭</div>
+            <div class="text-sm font-bold">Cyber Mask</div>
+            <div class="item-price">1200 ₴</div>
+            <button onclick="addToCart('Cyber Mask', 1200)" class="add-btn">ADD</button>
+        </div>
+
+        <div class="item-card shadow-sm">
+            <div class="text-5xl mb-2">⚙️</div>
+            <div class="text-sm font-bold">Tech Gear</div>
+            <div class="item-price">150 ₴</div>
+            <button onclick="addToCart('Tech Gear', 150)" class="add-btn">ADD</button>
         </div>
     </div>
 
-    <div class="thangs-box p-4 mb-6">
-        <p class="text-[10px] font-bold text-zinc-500 uppercase mb-2">Глобальний пошук Thangs</p>
-        <div class="flex gap-2">
-            <input id="q" type="text" placeholder="Знайти STL..." class="flex-1 bg-zinc-800 rounded-lg p-2 text-sm outline-none border border-zinc-700 focus:border-yellow-500">
-            <button onclick="window.open('https://thangs.com/search/'+document.getElementById('q').value)" class="bg-yellow-500 text-black px-3 rounded-lg font-bold"> GO </button>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4 mb-24" id="catalog">
-        <div class="item-card p-4 relative">
-            <div class="text-4xl mb-2">🐉</div>
-            <h3 class="font-bold text-sm">Flexi Dragon</h3>
-            <p class="text-zinc-500 text-xs mb-3">400 ₴</p>
-            <button onclick="addToCart('Flexi Dragon', 400)" class="main-btn text-[10px] py-2">Додати</button>
-        </div>
-        <div class="item-card p-4">
-            <div class="text-4xl mb-2">⚙️</div>
-            <h3 class="font-bold text-sm">Tech Gear</h3>
-            <p class="text-zinc-500 text-xs mb-3">150 ₴</p>
-            <button onclick="addToCart('Tech Gear', 150)" class="main-btn text-[10px] py-2">Додати</button>
-        </div>
-    </div>
-
-    <div id="checkout-bar" class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t hidden">
-        <button id="main-order-btn" onclick="sendOrder()" class="main-btn shadow-lg shadow-yellow-500/30">
-            Оформити замовлення (<span id="total-price">0</span> ₴)
+    <div id="footer-btn" class="main-button-container">
+        <button onclick="sendToTelegram()" class="view-order-btn">
+            VIEW ORDER <span id="total-price" class="bg-black/20 px-2 py-0.5 rounded">0 ₴</span>
         </button>
     </div>
 
     <script>
-        lucide.createIcons();
-        let cart = [];
-        let total = 0;
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready();
+
+        let cart = [];
+        let total = 0;
 
         function addToCart(name, price) {
             cart.push({name, price});
             total += price;
-            updateUI();
+            
             tg.HapticFeedback.impactOccurred('medium');
+            
+            document.getElementById('footer-btn').style.display = 'block';
+            document.getElementById('total-price').innerText = total + ' ₴';
         }
 
-        function updateUI() {
-            const count = cart.length;
-            const badge = document.getElementById('cart-count');
-            const checkout = document.getElementById('checkout-bar');
-            
-            if(count > 0) {
-                badge.classList.remove('hidden');
-                badge.innerText = count;
-                checkout.classList.remove('hidden');
-                document.getElementById('total-price').innerText = total;
+        function searchThangs() {
+            const query = document.getElementById('q').value;
+            if (query) {
+                tg.openLink(`https://thangs.com/search/${encodeURIComponent(query)}`);
             }
         }
 
-        function sendOrder() {
-            let message = "ПРИВІТ! МОЄ ЗАМОВЛЕННЯ:%0A";
-            cart.forEach(item => message += `- ${item.name} (${item.price} ₴)%0A`);
-            message += `%0AРАЗОМ: ${total} ₴`;
-            
-            // Заміни ТВІЙ_ЛОГІН на свій нік без @
-            window.open(`https://t.me/ТВІЙ_ЛОГІН?text=${message}`);
+        function sendToTelegram() {
+            let orderText = "🛒 НОВЕ ЗАМОВЛЕННЯ:%0A";
+            cart.forEach(i => orderText += `- ${i.name} (${i.price} ₴)%0A`);
+            orderText += `%0AРАЗОМ: ${total} ₴`;
+
+            // ЗАМІНИ 'ТВІЙ_ЛОГІН' НА СВІЙ НІК В ТГ (БЕЗ @)
+            const MY_USER = "ТВІЙ_ЛОГІН"; 
+            tg.openTelegramLink(`https://t.me/${MY_USER}?text=${orderText}`);
         }
     </script>
 </body>
