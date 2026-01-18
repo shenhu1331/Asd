@@ -2,111 +2,50 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D PHOTO SEARCH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D UA Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; }
-        .search-area { background: #1e293b; padding: 20px; border-radius: 0 0 24px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .model-card { background: #1e293b; border-radius: 20px; overflow: hidden; border: 1px solid #334155; transition: 0.3s; }
-        .model-card:active { transform: scale(0.97); }
-        .img-container { width: 100%; height: 150px; background: #0f172a; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .img-container img { width: 100%; height: 100%; object-fit: cover; }
-        .badge { background: #3b82f6; color: white; font-size: 9px; padding: 2px 8px; border-radius: 10px; position: absolute; top: 10px; left: 10px; font-weight: bold; }
-    </style>
 </head>
-<body class="pb-32">
+<body class="bg-gray-900 text-white p-4">
+    <header class="mb-6 text-center">
+        <h1 class="text-2xl font-bold text-yellow-500">UA 3D Моделі</h1>
+        <p class="text-sm text-gray-400">Знайдено в мережі та відібрано для вас</p>
+    </header>
 
-    <div class="search-area sticky top-0 z-50">
-        <div class="flex justify-between items-center mb-4">
-            <span class="text-[10px] font-black text-blue-400 tracking-widest uppercase">Real-Time Model Finder</span>
-            <div id="status" class="hidden text-[10px] text-yellow-500 animate-pulse">ШУКАЄМО ФОТО...</div>
-        </div>
-        <div class="flex gap-2">
-            <input id="q" type="text" placeholder="Що знайти? (напр. Batman)" 
-                class="flex-1 bg-slate-900 border-none rounded-xl p-4 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            <button onclick="findWithPhoto()" class="bg-blue-600 px-6 rounded-xl font-bold">GO</button>
-        </div>
-    </div>
-
-    <div class="p-4">
-        <div id="results-grid" class="grid grid-cols-2 gap-4">
-            </div>
-    </div>
-
-    <div id="footer" class="fixed bottom-0 left-0 right-0 p-6 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 hidden z-50">
-        <button onclick="orderSelected()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl flex justify-between px-8 italic">
-            <span>ЗАМОВИТИ ЦЮ МОДЕЛЬ</span>
-            <span>➜</span>
-        </button>
+    <div id="catalog" class="grid grid-cols-1 gap-4">
+        <div class="animate-pulse bg-gray-800 h-40 rounded-xl"></div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        // Посилання на вашу опубліковану таблицю (CSV формат)
+        const sheetID = 'ВАШ_ID_ТАБЛИЦІ'; 
+        const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json`;
 
-        let lastSelected = "";
+        fetch(url)
+            .then(res => res.text())
+            .then(data => {
+                const json = JSON.parse(data.substr(47).slice(0, -2));
+                const rows = json.table.rows;
+                const catalog = document.getElementById('catalog');
+                catalog.innerHTML = '';
 
-        // Словник перекладу для кращого пошуку картинок
-        const dictionary = {
-            "шолом": "helmet", "ваза": "vase", "маска": "mask", "кіт": "cat", "іграшка": "toy"
-        };
-
-        async function findWithPhoto() {
-            const query = document.getElementById('q').value.trim();
-            if (!query) return;
-
-            const status = document.getElementById('status');
-            const grid = document.getElementById('results-grid');
-            
-            status.classList.remove('hidden');
-            tg.HapticFeedback.impactOccurred('medium');
-
-            const engQuery = dictionary[query.toLowerCase()] || query;
-
-            // Використовуємо Unsplash або інший відкритий сервіс для демонстрації реальних фото
-            // В реальному проекті тут може бути твій API пошуку зображень
-            const imageUrls = [
-                `https://source.unsplash.com/400x400/?3d-print,${engQuery},model`,
-                `https://loremflickr.com/400/400/${engQuery},3d`
-            ];
-
-            setTimeout(() => {
-                grid.innerHTML = '';
-                imageUrls.forEach((url, index) => {
-                    grid.innerHTML += `
-                        <div class="model-card relative animate-in fade-in zoom-in" onclick="selectItem('${query} #${index+1}', '${url}')">
-                            <span class="badge">STL FOUND</span>
-                            <div class="img-container">
-                                <img src="${url}" alt="model" onerror="this.src='https://via.placeholder.com/400?text=No+Photo'">
-                            </div>
-                            <div class="p-3">
-                                <p class="text-[10px] font-bold uppercase truncate text-slate-300">${query}</p>
-                                <p class="text-blue-400 font-black text-xs">ВІД 450 ₴</p>
+                rows.forEach(row => {
+                    const card = `
+                        <div class="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
+                            <img src="${row.c[4].v}" class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <span class="text-xs font-bold text-yellow-500 uppercase">${row.c[2].v}</span>
+                                <h3 class="text-lg font-semibold mt-1">${row.c[0].v}</h3>
+                                <p class="text-gray-400 text-sm mt-2">${row.c[1].v}</p>
+                                <a href="${row.c[3].v}" target="_blank" class="block mt-4 text-center bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded-lg transition">
+                                    Скачати STL
+                                </a>
                             </div>
                         </div>
                     `;
+                    catalog.innerHTML += card;
                 });
-                status.classList.add('hidden');
-            }, 800);
-        }
-
-        function selectItem(name, url) {
-            lastSelected = name;
-            document.getElementById('footer').style.display = 'block';
-            tg.HapticFeedback.notificationOccurred('success');
-            
-            // Підсвічуємо обране
-            document.querySelectorAll('.model-card').forEach(c => c.style.borderColor = '#334155');
-            event.currentTarget.style.borderColor = '#3b82f6';
-        }
-
-        function orderSelected() {
-            const MY_USER = "ТВІЙ_ЛОГІН"; 
-            const text = `Привіт! Мене зацікавила модель: ${lastSelected}. Знайшов її через ваш TWA-пошук. Яка буде ціна друку?`;
-            tg.openTelegramLink(`https://t.me/${MY_USER}?text=${encodeURIComponent(text)}`);
-        }
+            });
     </script>
 </body>
 </html>
