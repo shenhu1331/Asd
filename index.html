@@ -2,54 +2,44 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D UA HUB</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>REAL 3D SEARCH</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background-color: #f3f4f6; font-family: -apple-system, sans-serif; }
-        .search-area { background: #18181b; padding: 20px; border-radius: 0 0 24px 24px; }
-        .item-card { background: white; border-radius: 20px; padding: 16px; border: 1px solid transparent; position: relative; }
-        .global-tag { position: absolute; top: 10px; left: 10px; background: #3b82f6; color: white; font-size: 8px; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); display: none; z-index: 1000; align-items: flex-end; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; width: 100%; border-radius: 24px 24px 0 0; padding: 25px; }
+        body { background: #0f172a; color: white; font-family: sans-serif; }
+        .search-card { background: #1e293b; border-radius: 20px; padding: 20px; margin: 10px; border: 1px solid #334155; }
+        .model-item { background: #334155; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .btn-primary { background: #38bdf8; color: #0f172a; font-weight: 800; padding: 12px; border-radius: 10px; width: 100%; transition: 0.2s; }
+        .btn-primary:active { transform: scale(0.98); }
     </style>
 </head>
-<body class="pb-32">
-
-    <div class="search-area sticky top-0 z-50">
-        <div class="flex items-center justify-between mb-4">
-            <span class="text-[10px] font-black uppercase text-zinc-500">Global 3D Engine (UA Support)</span>
-            <div id="loader" class="hidden text-yellow-500 text-[10px] font-bold animate-pulse">ПЕРЕКЛАД ТА ПОШУК...</div>
-        </div>
-        <div class="flex gap-2">
-            <input id="searchInput" type="text" placeholder="Що знайти? (напр. Шолом)" 
-                class="w-full bg-zinc-800 border-none rounded-xl p-4 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            <button onclick="startGlobalSearch()" class="bg-blue-600 text-white px-5 rounded-xl font-bold text-xs uppercase">GO</button>
-        </div>
-    </div>
+<body>
 
     <div class="p-4">
-        <div id="results-title" class="text-[10px] font-black text-zinc-400 uppercase mb-4 ml-2">Рекомендації</div>
-        <div id="grid" class="grid grid-cols-2 gap-4">
-            </div>
-    </div>
+        <h1 class="text-xl font-black mb-4 flex items-center gap-2">
+            <span class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
+            GLOBAL 3D FINDER
+        </h1>
 
-    <div id="itemModal" class="modal" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div id="modal-img" class="text-6xl text-center mb-4"></div>
-            <h3 id="modal-name" class="text-xl font-black text-center uppercase tracking-tighter"></h3>
-            <p class="text-zinc-500 text-center text-sm my-4">Ця модель знайдена в глобальній базі. Ми можемо надрукувати її спеціально для вас.</p>
-            <div id="modal-price" class="text-3xl font-black text-center text-blue-600 mb-6"></div>
-            <button onclick="addToCartFromModal()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg uppercase">Замовити друк</button>
+        <div class="search-card">
+            <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">Введіть запит (UA/EN):</p>
+            <div class="flex gap-2">
+                <input id="query" type="text" placeholder="Напр: Iron Man, Vase..." 
+                    class="flex-1 bg-slate-900 border-none rounded-lg p-3 text-white outline-none ring-1 ring-slate-700 focus:ring-blue-500">
+                <button onclick="realSearch()" class="bg-blue-500 p-3 rounded-lg">🔍</button>
+            </div>
+        </div>
+
+        <div id="results-container" class="mt-6 hidden">
+            <h2 class="text-xs font-bold text-slate-400 uppercase mb-3">Знайдено в мережі:</h2>
+            <div id="results-list"></div>
         </div>
     </div>
 
-    <div id="footer" class="fixed bottom-0 left-0 right-0 p-6 bg-white/90 border-t hidden z-50">
-        <button onclick="sendOrder()" class="w-full bg-black text-white py-4 rounded-2xl font-black flex justify-between px-8">
-            <span>ОФОРМИТИ</span>
-            <span id="total">0 ₴</span>
+    <div id="order-footer" class="fixed bottom-0 left-0 right-0 p-4 bg-slate-900 border-t border-slate-800 hidden">
+        <button onclick="finishOrder()" id="final-btn" class="btn-primary uppercase italic text-sm italic">
+            ОФОРМИТИ ЗАМОВЛЕННЯ
         </button>
     </div>
 
@@ -57,83 +47,56 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let cart = [];
-        let total = 0;
-        let selectedItem = null;
+        let selectedModel = "";
 
-        // Словник для миттєвого перекладу (UA -> EN)
-        const dictionary = {
-            "шолом": "helmet", "маска": "mask", "ваза": "vase", "дракон": "dragon",
-            "тримач": "holder", "підставка": "stand", "кільце": "ring", "іграшка": "toy",
-            "літак": "plane", "машина": "car", "череп": "skull", "коробка": "box",
-            "деталь": "part", "лампа": "lamp", "горщик": "pot", "фігурка": "figure"
+        // Словник для автоматичного перекладу назв для кращого пошуку
+        const translate = {
+            "шолом": "helmet", "маска": "mask", "ваза": "vase", "підставка": "stand", "іграшка": "toy"
         };
 
-        function startGlobalSearch() {
-            const input = document.getElementById('searchInput').value.toLowerCase().trim();
-            const loader = document.getElementById('loader');
-            const grid = document.getElementById('grid');
-            
-            if (!input) return;
+        function realSearch() {
+            let q = document.getElementById('query').value.toLowerCase().trim();
+            if(!q) return;
 
-            loader.classList.remove('hidden');
+            // Перекладаємо для глобальних баз
+            let engQ = translate[q] || q;
             
-            // 1. Автопереклад
-            let searchQuery = dictionary[input] || input;
+            tg.HapticFeedback.impactOccurred('medium');
             
-            // 2. Імітація запиту до API (Thangs/Thingiverse)
-            setTimeout(() => {
-                const results = [
-                    { name: "Global " + input + " #1", price: 800, icon: "📦", source: "Internet" },
-                    { name: "Global " + input + " #2", price: 1200, icon: "📦", source: "Internet" },
-                    { name: "Custom " + input, price: 500, icon: "⚙️", source: "AI Support" }
-                ];
-
-                grid.innerHTML = '';
-                results.forEach((item, index) => {
-                    grid.innerHTML += `
-                        <div class="item-card shadow-sm animate-in fade-in" onclick='openModal(${JSON.stringify(item)})'>
-                            <span class="global-tag">INTERNET</span>
-                            <div class="text-5xl mb-3 text-center">${item.icon}</div>
-                            <h3 class="text-[10px] font-black uppercase truncate">${item.name}</h3>
-                            <p class="text-blue-600 font-bold text-sm mt-1">${item.price} ₴</p>
-                            <button class="bg-zinc-100 text-zinc-800 rounded-lg w-full py-2 mt-3 text-[10px] font-bold">ДЕТАЛІ</button>
-                        </div>
-                    `;
-                });
-
-                document.getElementById('results-title').innerText = `Знайдено за запитом: ${input}`;
-                loader.classList.add('hidden');
-                tg.HapticFeedback.impactOccurred('medium');
-            }, 1000);
+            // Показуємо імітацію результатів з посиланнями на реальні бази
+            const list = document.getElementById('results-list');
+            const container = document.getElementById('results-container');
+            
+            container.classList.remove('hidden');
+            list.innerHTML = `
+                <div class="model-item animate-pulse">
+                    <div>
+                        <p class="text-xs font-bold text-blue-300 uppercase">Найкращий результат</p>
+                        <p class="text-lg font-black">${q.toUpperCase()}</p>
+                    </div>
+                    <button onclick="selectModel('${q}', 'Thingiverse')" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold">ОБРАТИ</button>
+                </div>
+                
+                <div class="p-4 bg-slate-800/50 rounded-xl text-[11px] text-slate-400">
+                    <p class="mb-2 italic">Натисніть нижче, щоб переглянути оригінальні файли на Thangs:</p>
+                    <button onclick="window.open('https://thangs.com/search/${engQ}')" class="text-blue-400 underline font-bold">
+                        ВІДКРИТИ ПОВНУ БАЗУ THANGS ↗
+                    </button>
+                </div>
+            `;
         }
 
-        function openModal(item) {
-            selectedItem = item;
-            document.getElementById('modal-img').innerText = item.icon;
-            document.getElementById('modal-name').innerText = item.name;
-            document.getElementById('modal-price').innerText = item.price + " ₴";
-            document.getElementById('itemModal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('itemModal').classList.remove('active');
-        }
-
-        function addToCartFromModal() {
-            cart.push(selectedItem);
-            total += selectedItem.price;
-            document.getElementById('footer').style.display = 'block';
-            document.getElementById('total').innerText = total + ' ₴';
-            closeModal();
+        function selectModel(name, source) {
+            selectedModel = name;
+            document.getElementById('order-footer').classList.remove('hidden');
+            document.getElementById('final-btn').innerText = `ЗАМОВИТИ ДРУК: ${name.toUpperCase()}`;
             tg.HapticFeedback.notificationOccurred('success');
         }
 
-        function sendOrder() {
-            let msg = "🚀 ЗАМОВЛЕННЯ З ГЛОБАЛЬНОГО ПОШУКУ:%0A";
-            cart.forEach(i => msg += `- ${i.name} (${i.price} ₴)%0A`);
-            msg += `%0AРАЗОМ: ${total} ₴`;
-            window.open(`https://t.me/ТВІЙ_ЛОГІН?text=${msg}`);
+        function finishOrder() {
+            const MY_USER = "ТВІЙ_ЛОГІН"; 
+            const text = `Вітаю! Я знайшов модель "${selectedModel}" через пошук і хочу замовити її 3D-друк. Допоможіть з прорахунком?`;
+            tg.openTelegramLink(`https://t.me/${MY_USER}?text=${encodeURIComponent(text)}`);
         }
     </script>
 </body>
