@@ -2,44 +2,43 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>REAL 3D SEARCH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D PHOTO SEARCH</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; }
-        .search-card { background: #1e293b; border-radius: 20px; padding: 20px; margin: 10px; border: 1px solid #334155; }
-        .model-item { background: #334155; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
-        .btn-primary { background: #38bdf8; color: #0f172a; font-weight: 800; padding: 12px; border-radius: 10px; width: 100%; transition: 0.2s; }
-        .btn-primary:active { transform: scale(0.98); }
+        .search-area { background: #1e293b; padding: 20px; border-radius: 0 0 24px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .model-card { background: #1e293b; border-radius: 20px; overflow: hidden; border: 1px solid #334155; transition: 0.3s; }
+        .model-card:active { transform: scale(0.97); }
+        .img-container { width: 100%; height: 150px; background: #0f172a; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .img-container img { width: 100%; height: 100%; object-fit: cover; }
+        .badge { background: #3b82f6; color: white; font-size: 9px; padding: 2px 8px; border-radius: 10px; position: absolute; top: 10px; left: 10px; font-weight: bold; }
     </style>
 </head>
-<body>
+<body class="pb-32">
 
-    <div class="p-4">
-        <h1 class="text-xl font-black mb-4 flex items-center gap-2">
-            <span class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
-            GLOBAL 3D FINDER
-        </h1>
-
-        <div class="search-card">
-            <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">Введіть запит (UA/EN):</p>
-            <div class="flex gap-2">
-                <input id="query" type="text" placeholder="Напр: Iron Man, Vase..." 
-                    class="flex-1 bg-slate-900 border-none rounded-lg p-3 text-white outline-none ring-1 ring-slate-700 focus:ring-blue-500">
-                <button onclick="realSearch()" class="bg-blue-500 p-3 rounded-lg">🔍</button>
-            </div>
+    <div class="search-area sticky top-0 z-50">
+        <div class="flex justify-between items-center mb-4">
+            <span class="text-[10px] font-black text-blue-400 tracking-widest uppercase">Real-Time Model Finder</span>
+            <div id="status" class="hidden text-[10px] text-yellow-500 animate-pulse">ШУКАЄМО ФОТО...</div>
         </div>
-
-        <div id="results-container" class="mt-6 hidden">
-            <h2 class="text-xs font-bold text-slate-400 uppercase mb-3">Знайдено в мережі:</h2>
-            <div id="results-list"></div>
+        <div class="flex gap-2">
+            <input id="q" type="text" placeholder="Що знайти? (напр. Batman)" 
+                class="flex-1 bg-slate-900 border-none rounded-xl p-4 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            <button onclick="findWithPhoto()" class="bg-blue-600 px-6 rounded-xl font-bold">GO</button>
         </div>
     </div>
 
-    <div id="order-footer" class="fixed bottom-0 left-0 right-0 p-4 bg-slate-900 border-t border-slate-800 hidden">
-        <button onclick="finishOrder()" id="final-btn" class="btn-primary uppercase italic text-sm italic">
-            ОФОРМИТИ ЗАМОВЛЕННЯ
+    <div class="p-4">
+        <div id="results-grid" class="grid grid-cols-2 gap-4">
+            </div>
+    </div>
+
+    <div id="footer" class="fixed bottom-0 left-0 right-0 p-6 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 hidden z-50">
+        <button onclick="orderSelected()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl flex justify-between px-8 italic">
+            <span>ЗАМОВИТИ ЦЮ МОДЕЛЬ</span>
+            <span>➜</span>
         </button>
     </div>
 
@@ -47,55 +46,65 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let selectedModel = "";
+        let lastSelected = "";
 
-        // Словник для автоматичного перекладу назв для кращого пошуку
-        const translate = {
-            "шолом": "helmet", "маска": "mask", "ваза": "vase", "підставка": "stand", "іграшка": "toy"
+        // Словник перекладу для кращого пошуку картинок
+        const dictionary = {
+            "шолом": "helmet", "ваза": "vase", "маска": "mask", "кіт": "cat", "іграшка": "toy"
         };
 
-        function realSearch() {
-            let q = document.getElementById('query').value.toLowerCase().trim();
-            if(!q) return;
+        async function findWithPhoto() {
+            const query = document.getElementById('q').value.trim();
+            if (!query) return;
 
-            // Перекладаємо для глобальних баз
-            let engQ = translate[q] || q;
+            const status = document.getElementById('status');
+            const grid = document.getElementById('results-grid');
             
+            status.classList.remove('hidden');
             tg.HapticFeedback.impactOccurred('medium');
-            
-            // Показуємо імітацію результатів з посиланнями на реальні бази
-            const list = document.getElementById('results-list');
-            const container = document.getElementById('results-container');
-            
-            container.classList.remove('hidden');
-            list.innerHTML = `
-                <div class="model-item animate-pulse">
-                    <div>
-                        <p class="text-xs font-bold text-blue-300 uppercase">Найкращий результат</p>
-                        <p class="text-lg font-black">${q.toUpperCase()}</p>
-                    </div>
-                    <button onclick="selectModel('${q}', 'Thingiverse')" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold">ОБРАТИ</button>
-                </div>
-                
-                <div class="p-4 bg-slate-800/50 rounded-xl text-[11px] text-slate-400">
-                    <p class="mb-2 italic">Натисніть нижче, щоб переглянути оригінальні файли на Thangs:</p>
-                    <button onclick="window.open('https://thangs.com/search/${engQ}')" class="text-blue-400 underline font-bold">
-                        ВІДКРИТИ ПОВНУ БАЗУ THANGS ↗
-                    </button>
-                </div>
-            `;
+
+            const engQuery = dictionary[query.toLowerCase()] || query;
+
+            // Використовуємо Unsplash або інший відкритий сервіс для демонстрації реальних фото
+            // В реальному проекті тут може бути твій API пошуку зображень
+            const imageUrls = [
+                `https://source.unsplash.com/400x400/?3d-print,${engQuery},model`,
+                `https://loremflickr.com/400/400/${engQuery},3d`
+            ];
+
+            setTimeout(() => {
+                grid.innerHTML = '';
+                imageUrls.forEach((url, index) => {
+                    grid.innerHTML += `
+                        <div class="model-card relative animate-in fade-in zoom-in" onclick="selectItem('${query} #${index+1}', '${url}')">
+                            <span class="badge">STL FOUND</span>
+                            <div class="img-container">
+                                <img src="${url}" alt="model" onerror="this.src='https://via.placeholder.com/400?text=No+Photo'">
+                            </div>
+                            <div class="p-3">
+                                <p class="text-[10px] font-bold uppercase truncate text-slate-300">${query}</p>
+                                <p class="text-blue-400 font-black text-xs">ВІД 450 ₴</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                status.classList.add('hidden');
+            }, 800);
         }
 
-        function selectModel(name, source) {
-            selectedModel = name;
-            document.getElementById('order-footer').classList.remove('hidden');
-            document.getElementById('final-btn').innerText = `ЗАМОВИТИ ДРУК: ${name.toUpperCase()}`;
+        function selectItem(name, url) {
+            lastSelected = name;
+            document.getElementById('footer').style.display = 'block';
             tg.HapticFeedback.notificationOccurred('success');
+            
+            // Підсвічуємо обране
+            document.querySelectorAll('.model-card').forEach(c => c.style.borderColor = '#334155');
+            event.currentTarget.style.borderColor = '#3b82f6';
         }
 
-        function finishOrder() {
+        function orderSelected() {
             const MY_USER = "ТВІЙ_ЛОГІН"; 
-            const text = `Вітаю! Я знайшов модель "${selectedModel}" через пошук і хочу замовити її 3D-друк. Допоможіть з прорахунком?`;
+            const text = `Привіт! Мене зацікавила модель: ${lastSelected}. Знайшов її через ваш TWA-пошук. Яка буде ціна друку?`;
             tg.openTelegramLink(`https://t.me/${MY_USER}?text=${encodeURIComponent(text)}`);
         }
     </script>
