@@ -13,6 +13,25 @@
         .cat-btn { background: white; border: 1px solid #e5e7eb; padding: 8px 16px; border-radius: 12px; font-size: 11px; font-weight: 700; white-space: nowrap; transition: all 0.2s; }
         .cat-btn.active { background: #f4b324; color: white; border-color: #f4b324; }
         .search-area { background: #18181b; padding: 20px; border-radius: 0 0 24px 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+
+        /* Styles for Modal */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: flex-end; /* Позиціонування знизу */
+            z-index: 1000; opacity: 0; transform: translateY(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal.active { opacity: 1; transform: translateY(0%); }
+        .modal-content {
+            background: white; border-radius: 24px 24px 0 0;
+            width: 100%; max-width: 500px; /* Обмеження ширини для великих екранів */
+            padding: 20px; box-shadow: 0 -10px 30px rgba(0,0,0,0.2);
+            transform: translateY(20px); opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .modal.active .modal-content { transform: translateY(0); opacity: 1; }
+        .close-btn { background: #e5e7eb; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; font-size: 20px; position: absolute; top: 15px; right: 15px; }
     </style>
 </head>
 <body class="pb-32">
@@ -47,28 +66,41 @@
 
     <div id="footer" class="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t hidden z-50">
         <button onclick="sendOrder()" class="w-full bg-[#f4b324] text-white py-4 rounded-2xl font-black text-sm uppercase flex justify-between px-8 shadow-xl">
-            <span>ОФОРМИТИ</span>
+            <span>ОФОРМИТИ ЗАМОВЛЕННЯ</span>
             <span id="total">0 ₴</span>
         </button>
+    </div>
+
+    <div id="itemModal" class="modal">
+        <div class="modal-content relative">
+            <button class="close-btn absolute top-4 right-4" onclick="closeModal()">✕</button>
+            <div class="text-6xl text-center mb-4" id="modal-icon"></div>
+            <h3 class="text-xl font-bold text-center mb-2" id="modal-name"></h3>
+            <p class="text-sm text-zinc-600 text-center mb-4" id="modal-description">Тут буде детальний опис товару, матеріал та час друку.</p>
+            <p class="text-2xl font-black text-yellow-600 text-center mb-6" id="modal-price"></p>
+            <button onclick="addItemToCartFromModal()" class="w-full bg-[#f4b324] text-white py-4 rounded-xl font-bold text-sm uppercase shadow-lg">ДОДАТИ В КОШИК</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready(); // Важливо викликати tg.ready()
 
         let cart = [];
         let total = 0;
         let currentCategory = 'all';
+        let selectedItem = null; // Для зберігання вибраного товару в модальному вікні
 
         const db = [
-            { name: "Flexi Dragon", price: 450, icon: "🐉", cat: "toys" },
-            { name: "Geometric Vase", price: 320, icon: "🏺", cat: "decor" },
-            { name: "Iron Man Mask", price: 2400, icon: "⛑️", cat: "toys" },
-            { name: "Phone Stand", price: 140, icon: "📱", cat: "gadgets" },
-            { name: "Laptop Riser", price: 550, icon: "💻", cat: "gadgets" },
-            { name: "Gear Set", price: 180, icon: "⚙️", cat: "tech" },
-            { name: "Planter Pot", price: 210, icon: "🪴", cat: "decor" },
-            { name: "Skull Lamp", price: 900, icon: "💡", cat: "decor" }
+            { id: 1, name: "Flexi Dragon", price: 450, icon: "🐉", cat: "toys", description: "Гнучкий шарнірний дракон, ідеальний для ігор та як елемент декору. Друкується з PLA-пластику." },
+            { id: 2, name: "Geometric Vase", price: 320, icon: "🏺", cat: "decor", description: "Сучасна геометрична ваза, чудово доповнить будь-який інтер'єр. Можна використовувати як кашпо." },
+            { id: 3, name: "Iron Man Mask", price: 2400, icon: "⛑️", cat: "toys", description: "Копія маски Залізної Людини у натуральну величину. Ідеально для косплею або колекції." },
+            { id: 4, name: "Phone Stand", price: 140, icon: "📱", cat: "gadgets", description: "Універсальна підставка для телефону. Зручно дивитися відео або працювати. Міцний PETG-пластик." },
+            { id: 5, name: "Laptop Riser", price: 550, icon: "💻", cat: "gadgets", description: "Ергономічна підставка для ноутбука, що покращує охолодження та поставу. Надійна та стійка." },
+            { id: 6, name: "Gear Set (5pcs)", price: 180, icon: "⚙️", cat: "tech", description: "Набір з 5 різних шестерень для прототипування або ремонту механізмів. Високоміцний ABS-пластик." },
+            { id: 7, name: "Planter Pot", price: 210, icon: "🪴", cat: "decor", description: "Стильний горщик для рослин. Органічний дизайн. Є дренажні отвори." },
+            { id: 8, name: "Skull Lamp", price: 900, icon: "💡", cat: "decor", description: "Оригінальна настільна лампа у формі черепа. Створює унікальну атмосферу." }
         ];
 
         window.onload = () => filterCatalog();
@@ -99,11 +131,11 @@
                 notFound.classList.add('hidden');
                 filtered.forEach(item => {
                     grid.innerHTML += `
-                        <div class="item-card shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                        <div class="item-card shadow-sm animate-in fade-in slide-in-from-bottom-2" onclick="openModal(${item.id})">
                             <div class="text-5xl mb-3">${item.icon}</div>
-                            <h3 class="text-[10px] font-black uppercase truncate">${item.name}</h3>
+                            <h3 class="text-[10px] font-black uppercase truncate text-zinc-800">${item.name}</h3>
                             <p class="text-yellow-500 font-bold text-sm mt-1">${item.price} ₴</p>
-                            <button onclick="add('${item.name}', ${item.price})" class="bg-yellow-500 text-white rounded-lg w-full py-2 mt-3 text-[10px] font-bold">ADD</button>
+                            <button onclick="event.stopPropagation(); add(${item.name}, ${item.price})" class="bg-yellow-500 text-white rounded-lg w-full py-2 mt-3 text-[10px] font-bold">ADD</button>
                         </div>
                     `;
                 });
@@ -116,6 +148,32 @@
             document.getElementById('footer').style.display = 'block';
             document.getElementById('total').innerText = total + ' ₴';
             tg.HapticFeedback.impactOccurred('medium');
+            closeModal(); // Закриваємо модалку після додавання
+        }
+
+        // Функції для модального вікна
+        function openModal(id) {
+            selectedItem = db.find(item => item.id === id);
+            if (!selectedItem) return;
+
+            document.getElementById('modal-icon').innerText = selectedItem.icon;
+            document.getElementById('modal-name').innerText = selectedItem.name;
+            document.getElementById('modal-description').innerText = selectedItem.description;
+            document.getElementById('modal-price').innerText = selectedItem.price + ' ₴';
+
+            document.getElementById('itemModal').classList.add('active');
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeModal() {
+            document.getElementById('itemModal').classList.remove('active');
+            selectedItem = null;
+        }
+
+        function addItemToCartFromModal() {
+            if (selectedItem) {
+                add(selectedItem.name, selectedItem.price);
+            }
         }
 
         function sendOrder() {
