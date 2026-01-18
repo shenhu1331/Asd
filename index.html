@@ -3,44 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Smart Hub</title>
+    <title>3D SMART STORE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { background-color: #f3f4f6; font-family: -apple-system, sans-serif; }
-        .item-card { background: white; border-radius: 20px; padding: 16px; transition: all 0.2s ease; border: 1px solid transparent; }
-        .item-card:active { transform: scale(0.95); background: #fefce8; border-color: #f4b324; }
-        .search-bar { background: #18181b; border-radius: 18px; padding: 16px; margin: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-        .add-btn { background: #f4b324; color: white; border-radius: 12px; width: 100%; padding: 10px; font-weight: 800; font-size: 12px; margin-top: 12px; }
-        .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+        .item-card { background: white; border-radius: 20px; padding: 16px; border: 1px solid transparent; }
+        .item-card:active { transform: scale(0.96); background: #fffbeb; }
+        .cat-btn { background: white; border: 1px solid #e5e7eb; padding: 8px 16px; border-radius: 12px; font-size: 11px; font-weight: 700; white-space: nowrap; transition: all 0.2s; }
+        .cat-btn.active { background: #f4b324; color: white; border-color: #f4b324; }
+        .search-area { background: #18181b; padding: 20px; border-radius: 0 0 24px 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body class="pb-32">
 
-    <div class="search-bar">
-        <div class="flex items-center justify-between mb-3">
-            <span id="status-tag" class="text-[9px] font-black uppercase tracking-widest text-zinc-500">Live Database Access</span>
-            <div id="loading-spinner" class="hidden w-3 h-3 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+    <div class="search-area sticky top-0 z-50">
+        <div class="flex items-center justify-between mb-4">
+            <span class="text-[10px] font-black uppercase text-zinc-500 tracking-widest">3D_PRO_MARKET</span>
+            <div id="loader" class="hidden w-3 h-3 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <input id="autoSearch" type="text" oninput="doLiveSearch()" placeholder="Почніть писати (напр. шолом...)" 
-            class="w-full bg-zinc-800 border-none rounded-xl p-4 text-white outline-none focus:ring-2 focus:ring-yellow-500 transition-all">
+        <input id="searchInput" type="text" oninput="filterCatalog()" placeholder="Що ви шукаєте?" 
+            class="w-full bg-zinc-800 border-none rounded-xl p-4 text-white outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-sm">
+    </div>
+
+    <div class="flex gap-2 overflow-x-auto p-4 no-scrollbar">
+        <button onclick="setCategory('all', this)" class="cat-btn active">Всі</button>
+        <button onclick="setCategory('decor', this)" class="cat-btn">Декор</button>
+        <button onclick="setCategory('toys', this)" class="cat-btn">Іграшки</button>
+        <button onclick="setCategory('tech', this)" class="cat-btn">Технічне</button>
+        <button onclick="setCategory('gadgets', this)" class="cat-btn">Гаджети</button>
     </div>
 
     <div class="px-4">
-        <h2 id="list-title" class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-4 ml-2">Всі моделі</h2>
-        <div id="catalog-grid" class="grid grid-cols-2 gap-4">
+        <h2 id="view-title" class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-4 ml-2">Весь каталог</h2>
+        <div id="grid" class="grid grid-cols-2 gap-4">
             </div>
-        <div id="empty-msg" class="empty-state hidden">
-            <div class="text-4xl mb-2">🔍</div>
-            <p class="text-sm font-bold">Нічого не знайдено...</p>
-            <button onclick="requestCustom()" class="mt-4 text-yellow-600 font-bold underline">Замовити індивідуально?</button>
+        
+        <div id="not-found" class="hidden text-center py-10 opacity-40">
+            <p class="text-4xl mb-2">🔭</p>
+            <p class="text-sm font-bold">Нічого не знайдено</p>
         </div>
     </div>
 
-    <div id="footer-btn" class="fixed bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t hidden z-50 animate-in fade-in slide-in-from-bottom-5">
-        <button onclick="sendOrder()" class="w-full bg-[#f4b324] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-tighter shadow-xl flex justify-between px-8">
-            <span>ОФОРМИТИ ЗАМОВЛЕННЯ</span>
-            <span id="total-price" class="bg-black/20 px-2 rounded">0 ₴</span>
+    <div id="footer" class="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t hidden z-50">
+        <button onclick="sendOrder()" class="w-full bg-[#f4b324] text-white py-4 rounded-2xl font-black text-sm uppercase flex justify-between px-8 shadow-xl">
+            <span>ОФОРМИТИ</span>
+            <span id="total">0 ₴</span>
         </button>
     </div>
 
@@ -50,76 +58,64 @@
 
         let cart = [];
         let total = 0;
+        let currentCategory = 'all';
 
-        // База даних
-        const models = [
-            { name: "Iron Man Helmet", price: 2500, icon: "⛑️", tags: "шолом маска залізна людина" },
-            { name: "Flexi Dragon", price: 450, icon: "🐉", tags: ["дракон", "іграшка", "флексі"] },
-            { name: "Phone Stand", price: 120, icon: "📱", tags: "підставка телефон холдер" },
-            { name: "Geometric Vase", price: 300, icon: "🏺", tags: "ваза декор інтер'єр" },
-            { name: "Mandalorian", price: 2100, icon: "🎭", tags: "шолом мандалорець зоряні війни" },
-            { name: "Gear Set", price: 180, icon: "⚙️", tags: "шестерня деталь механізм" },
-            { name: "Pot for Flowers", price: 220, icon: "🪴", tags: "горщик вазон квіти" },
-            { name: "Skull Lamp", price: 850, icon: "💀", tags: "череп лампа світло" }
+        const db = [
+            { name: "Flexi Dragon", price: 450, icon: "🐉", cat: "toys" },
+            { name: "Geometric Vase", price: 320, icon: "🏺", cat: "decor" },
+            { name: "Iron Man Mask", price: 2400, icon: "⛑️", cat: "toys" },
+            { name: "Phone Stand", price: 140, icon: "📱", cat: "gadgets" },
+            { name: "Laptop Riser", price: 550, icon: "💻", cat: "gadgets" },
+            { name: "Gear Set", price: 180, icon: "⚙️", cat: "tech" },
+            { name: "Planter Pot", price: 210, icon: "🪴", cat: "decor" },
+            { name: "Skull Lamp", price: 900, icon: "💡", cat: "decor" }
         ];
 
-        // Перший запуск - показуємо все
-        window.onload = () => renderItems(models);
+        window.onload = () => filterCatalog();
 
-        function renderItems(items) {
-            const grid = document.getElementById('catalog-grid');
-            const emptyMsg = document.getElementById('empty-msg');
-            grid.innerHTML = '';
+        function setCategory(cat, el) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            currentCategory = cat;
+            filterCatalog();
+            tg.HapticFeedback.selectionChanged();
+        }
 
-            if (items.length === 0) {
-                emptyMsg.classList.remove('hidden');
-                return;
-            }
-
-            emptyMsg.classList.add('hidden');
-            items.forEach(item => {
-                grid.innerHTML += `
-                    <div class="item-card shadow-sm animate-in fade-in zoom-in duration-300">
-                        <div class="text-5xl mb-3">${item.icon}</div>
-                        <h3 class="text-[11px] font-black uppercase truncate text-zinc-800">${item.name}</h3>
-                        <p class="text-yellow-500 font-bold text-sm mt-1">${item.price} ₴</p>
-                        <button onclick="addToCart('${item.name}', ${item.price})" class="add-btn uppercase tracking-tighter">В кошик</button>
-                    </div>
-                `;
+        function filterCatalog() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const grid = document.getElementById('grid');
+            const notFound = document.getElementById('not-found');
+            
+            const filtered = db.filter(item => {
+                const matchCat = currentCategory === 'all' || item.cat === currentCategory;
+                const matchSearch = item.name.toLowerCase().includes(query);
+                return matchCat && matchSearch;
             });
+
+            grid.innerHTML = '';
+            if (filtered.length === 0) {
+                notFound.classList.remove('hidden');
+            } else {
+                notFound.classList.add('hidden');
+                filtered.forEach(item => {
+                    grid.innerHTML += `
+                        <div class="item-card shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                            <div class="text-5xl mb-3">${item.icon}</div>
+                            <h3 class="text-[10px] font-black uppercase truncate">${item.name}</h3>
+                            <p class="text-yellow-500 font-bold text-sm mt-1">${item.price} ₴</p>
+                            <button onclick="add('${item.name}', ${item.price})" class="bg-yellow-500 text-white rounded-lg w-full py-2 mt-3 text-[10px] font-bold">ADD</button>
+                        </div>
+                    `;
+                });
+            }
         }
 
-        function doLiveSearch() {
-            const query = document.getElementById('autoSearch').value.toLowerCase().trim();
-            const title = document.getElementById('list-title');
-            const spinner = document.getElementById('loading-spinner');
-
-            spinner.classList.remove('hidden');
-
-            // Імітація миттєвої затримки для плавності
-            setTimeout(() => {
-                const filtered = models.filter(m => 
-                    m.name.toLowerCase().includes(query) || 
-                    m.tags.toString().toLowerCase().includes(query)
-                );
-
-                title.innerText = query ? `Результати за запитом: ${query}` : "Всі моделі";
-                renderItems(filtered);
-                spinner.classList.add('hidden');
-            }, 150);
-        }
-
-        function addToCart(name, price) {
+        function add(name, price) {
             cart.push({name, price});
             total += price;
+            document.getElementById('footer').style.display = 'block';
+            document.getElementById('total').innerText = total + ' ₴';
             tg.HapticFeedback.impactOccurred('medium');
-            document.getElementById('footer-btn').style.display = 'block';
-            document.getElementById('total-price').innerText = total + ' ₴';
-        }
-
-        function requestCustom() {
-            const query = document.getElementById('autoSearch').value;
-            window.open(`https://t.me/ТВІЙ_ЛОГІН?text=Хочу замовити індивідуальну модель: ${query}`);
         }
 
         function sendOrder() {
