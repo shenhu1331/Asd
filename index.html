@@ -3,108 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Order</title>
+    <title>3D Order System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --tg-theme-button-color: #f4b324;
-        }
-        body {
-            background-color: #f0f0f0;
-            margin: 0; padding: 0;
-            font-family: -apple-system, system-ui, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .item-card {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 15px;
-            text-align: center;
-            position: relative;
-        }
-        .add-btn {
-            background-color: var(--tg-theme-button-color);
-            color: white;
-            border-radius: 10px;
-            padding: 8px;
-            font-weight: 700;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .remove-btn {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            background: #ff4d4d;
-            color: white;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            font-size: 14px;
-            font-weight: bold;
-            display: none; /* Показуємо тільки якщо товар у кошику */
-        }
-        .count-badge {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: #f4b324;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: bold;
-            display: none;
-        }
-        .main-button-container {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            padding: 15px;
-            background: #ffffff;
-            border-top: 1px solid #e5e5e5;
-            display: none;
-            z-index: 100;
-        }
+        body { background-color: #f0f0f0; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .item-card { background: #fff; border-radius: 16px; padding: 12px; text-align: center; position: relative; transition: all 0.2s; }
+        .add-btn { background-color: #f4b324; color: white; border-radius: 10px; padding: 8px; font-weight: 700; width: 100%; margin-top: 10px; font-size: 12px; }
+        .search-results { display: none; margin-top: 10px; }
     </style>
 </head>
-<body>
+<body class="pb-32">
 
-    <div class="m-4 p-4 bg-zinc-900 rounded-2xl shadow-lg text-white">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-bold uppercase opacity-50 tracking-widest">Global Search</span>
-            <span class="text-yellow-500 text-[10px] font-bold uppercase">Thangs.com</span>
+    <div class="m-4 p-4 bg-zinc-900 rounded-2xl shadow-xl text-white">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-[10px] font-bold uppercase opacity-50 tracking-[0.2em]">Internal Search Engine</span>
+            <div id="status" class="text-[9px] text-green-500 font-bold uppercase">System Ready</div>
         </div>
         <div class="flex gap-2">
-            <input id="q" type="text" placeholder="Знайти STL модель..." 
-                class="flex-1 bg-zinc-800 border-none rounded-lg p-3 text-sm outline-none text-white placeholder:text-zinc-500">
-            <button onclick="searchThangs()" class="bg-yellow-500 text-black px-4 rounded-lg font-black uppercase text-xs">GO</button>
+            <input id="q" type="text" placeholder="Введіть назву (напр. Vase)..." 
+                class="flex-1 bg-zinc-800 border-none rounded-lg p-3 text-sm outline-none text-white focus:ring-1 focus:ring-yellow-500">
+            <button onclick="internalSearch()" class="bg-yellow-500 text-black px-4 rounded-lg font-black text-xs uppercase transition-transform active:scale-90">Пошук</button>
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 p-4 mb-32">
-        <div class="item-card shadow-sm" id="card-dragon">
-            <div id="badge-dragon" class="count-badge">0</div>
-            <button id="remove-dragon" onclick="removeFromCart('Flexi Dragon', 400, 'dragon')" class="remove-btn">—</button>
-            <div class="text-5xl mb-2">🐉</div>
-            <div class="text-sm font-bold">Flexi Dragon</div>
-            <div class="text-yellow-500 font-bold">400 ₴</div>
-            <button onclick="addToCart('Flexi Dragon', 400, 'dragon')" class="add-btn uppercase text-xs">Додати</button>
-        </div>
+    <div id="search-section" class="px-4 hidden">
+        <h3 class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3 pl-2">Знайдено в глобальній базі:</h3>
+        <div id="results-grid" class="grid grid-cols-2 gap-3 mb-6">
+            </div>
+        <hr class="border-zinc-300 mb-6">
+    </div>
 
-        <div class="item-card shadow-sm" id="card-gear">
-            <div id="badge-gear" class="count-badge">0</div>
-            <button id="remove-gear" onclick="removeFromCart('Tech Gear', 150, 'gear')" class="remove-btn">—</button>
-            <div class="text-5xl mb-2">⚙️</div>
-            <div class="text-sm font-bold">Tech Gear</div>
-            <div class="text-yellow-500 font-bold">150 ₴</div>
-            <button onclick="addToCart('Tech Gear', 150, 'gear')" class="add-btn uppercase text-xs">Додати</button>
+    <div class="px-4">
+        <h3 class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3 pl-2">Наявні пресети:</h3>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="item-card shadow-sm">
+                <div class="text-4xl mb-2">🐉</div>
+                <div class="text-xs font-bold truncate">Flexi Dragon</div>
+                <div class="text-yellow-500 font-bold text-sm">400 ₴</div>
+                <button onclick="addToCart('Flexi Dragon', 400)" class="add-btn uppercase">Додати</button>
+            </div>
+            <div class="item-card shadow-sm">
+                <div class="text-4xl mb-2">⚙️</div>
+                <div class="text-xs font-bold truncate">Tech Gear</div>
+                <div class="text-yellow-500 font-bold text-sm">150 ₴</div>
+                <button onclick="addToCart('Tech Gear', 150)" class="add-btn uppercase">Додати</button>
+            </div>
         </div>
     </div>
 
-    <div id="footer-btn" class="main-button-container">
-        <button onclick="sendToTelegram()" class="w-full bg-[#f4b324] text-white py-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2 shadow-lg">
-            ПЕРЕГЛЯНУТИ ЗАМОВЛЕННЯ <span id="total-price" class="bg-black/20 px-3 py-1 rounded-lg">0 ₴</span>
+    <div id="footer-btn" class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-zinc-200 hidden z-50">
+        <button onclick="sendOrder()" class="w-full bg-[#f4b324] text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest flex justify-center items-center gap-2 shadow-lg active:scale-95 transition-all">
+            Оформити (<span id="total-price">0</span> ₴)
         </button>
     </div>
 
@@ -112,73 +62,76 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let cart = {};
+        let cart = [];
         let total = 0;
 
-        function searchThangs() {
-            const query = document.getElementById('q').value;
-            if (query) {
-                const url = `https://thangs.com/search/${encodeURIComponent(query)}`;
-                // Використовуємо нативний метод Telegram для відкриття посилань
-                tg.openLink(url);
-            } else {
-                tg.showAlert("Будь ласка, введіть запит для пошуку");
-            }
+        // Імітація бази даних Thangs для вбудованого пошуку
+        const mockDatabase = [
+            { name: "Geometric Vase", price: 350, icon: "🏺" },
+            { name: "Skull Dice Tower", price: 600, icon: "💀" },
+            { name: "Phone Stand", price: 120, icon: "📱" },
+            { name: "Lithophane Lamp", price: 800, icon: "💡" },
+            { name: "Cable Organizer", price: 90, icon: "🔌" }
+        ];
+
+        function internalSearch() {
+            const query = document.getElementById('q').value.toLowerCase();
+            const resultsGrid = document.getElementById('results-grid');
+            const searchSection = document.getElementById('search-section');
+            const status = document.getElementById('status');
+
+            if (!query) return;
+
+            // Візуалізація завантаження
+            status.innerText = "Searching...";
+            status.className = "text-[9px] text-yellow-500 font-bold uppercase animate-pulse";
+
+            setTimeout(() => {
+                const filtered = mockDatabase.filter(item => item.name.toLowerCase().includes(query));
+                
+                resultsGrid.innerHTML = '';
+                if (filtered.length > 0) {
+                    filtered.forEach(item => {
+                        resultsGrid.innerHTML += `
+                            <div class="item-card shadow-md border border-yellow-500/30 animate-in fade-in zoom-in duration-300">
+                                <div class="text-4xl mb-2">${item.icon}</div>
+                                <div class="text-xs font-bold truncate">${item.name}</div>
+                                <div class="text-yellow-600 font-bold text-sm italic">від ${item.price} ₴</div>
+                                <button onclick="addToCart('${item.name}', ${item.price})" class="add-btn uppercase">Замовити</button>
+                            </div>
+                        `;
+                    });
+                    searchSection.style.display = 'block';
+                } else {
+                    tg.showPopup({ message: "Модель не знайдена в базі. Спробуйте іншу назву." });
+                }
+                status.innerText = "System Ready";
+                status.className = "text-[9px] text-green-500 font-bold uppercase";
+            }, 800);
         }
 
-        function addToCart(name, price, id) {
-            if (!cart[id]) {
-                cart[id] = { name: name, price: price, count: 0 };
-            }
-            cart[id].count++;
+        function addToCart(name, price) {
+            cart.push({name, price});
             total += price;
-            updateUI(id);
-            tg.HapticFeedback.impactOccurred('light');
+            updateUI();
+            tg.HapticFeedback.impactOccurred('medium');
         }
 
-        function removeFromCart(name, price, id) {
-            if (cart[id] && cart[id].count > 0) {
-                cart[id].count--;
-                total -= price;
-                if (cart[id].count === 0) delete cart[id];
-                updateUI(id);
-                tg.HapticFeedback.notificationOccurred('warning');
-            }
-        }
-
-        function updateUI(id) {
-            const badge = document.getElementById('badge-' + id);
-            const removeBtn = document.getElementById('remove-' + id);
-            const count = cart[id] ? cart[id].count : 0;
-
-            if (count > 0) {
-                badge.style.display = 'block';
-                badge.innerText = count;
-                removeBtn.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
-                removeBtn.style.display = 'none';
-            }
-
+        function updateUI() {
             const footer = document.getElementById('footer-btn');
             if (total > 0) {
                 footer.style.display = 'block';
-                document.getElementById('total-price').innerText = total + ' ₴';
-            } else {
-                footer.style.display = 'none';
+                document.getElementById('total-price').innerText = total;
             }
         }
 
-        function sendToTelegram() {
-            let orderText = "🛒 МОЄ ЗАМОВЛЕННЯ:%0A";
-            for (let id in cart) {
-                orderText += `- ${cart[id].name} x${cart[id].count} (${cart[id].price * cart[id].count} ₴)%0A`;
-            }
-            orderText += `%0AРАЗОМ: ${total} ₴`;
-
-            // ЗАМІНИ 'ТВІЙ_ЛОГІН' НА СВІЙ НІК (БЕЗ @)
-            const MY_USER = "ТВІЙ_ЛОГІН"; 
-            tg.openTelegramLink(`https://t.me/${MY_USER}?text=${orderText}`);
+        function sendOrder() {
+            let text = "НОВЕ ЗАМОВЛЕННЯ:%0A";
+            cart.forEach(i => text += `- ${i.name} (${i.price} ₴)%0A`);
+            text += `%0AРАЗОМ: ${total} ₴`;
+            
+            const MY_USER = "ТВІЙ_ЛОГІН"; // ВПИШИ СВІЙ НІК
+            tg.openTelegramLink(`https://t.me/${MY_USER}?text=${text}`);
         }
     </script>
 </body>
