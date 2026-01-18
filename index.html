@@ -3,49 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D UA Catalog</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>UA 3D Пошук</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; }
+        .card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 15px; overflow: hidden; margin-bottom: 20px; }
+        .card-title { color: #ffc107; font-weight: bold; }
+        .btn-warning { border-radius: 10px; font-weight: 600; }
+        .badge-category { background-color: #333; color: #aaa; font-size: 0.7rem; }
+        .model-img { height: 200px; object-fit: cover; width: 100%; border-bottom: 1px solid #333; }
+        .search-bar { position: sticky; top: 0; z-index: 1000; background: #121212; padding: 15px 0; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white p-4">
-    <header class="mb-6 text-center">
-        <h1 class="text-2xl font-bold text-yellow-500">UA 3D Моделі</h1>
-        <p class="text-sm text-gray-400">Знайдено в мережі та відібрано для вас</p>
-    </header>
+<body>
 
-    <div id="catalog" class="grid grid-cols-1 gap-4">
-        <div class="animate-pulse bg-gray-800 h-40 rounded-xl"></div>
+<div class="container pb-5">
+    <div class="search-bar">
+        <h4 class="text-center mb-3">📦 <span class="text-warning">UA 3D</span> Агрегатор</h4>
+        <div class="input-group">
+            <span class="input-group-text bg-dark border-secondary text-white"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchInput" class="form-control bg-dark border-secondary text-white" placeholder="Пошук у каталозі...">
+        </div>
     </div>
 
-    <script>
-        // Посилання на вашу опубліковану таблицю (CSV формат)
-        const sheetID = 'ВАШ_ID_ТАБЛИЦІ'; 
-        const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json`;
+    <div id="catalog" class="row">
+        <div class="text-center mt-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-2 text-muted">Завантаження бази моделей...</p>
+        </div>
+    </div>
+</div>
 
-        fetch(url)
-            .then(res => res.text())
-            .then(data => {
-                const json = JSON.parse(data.substr(47).slice(0, -2));
-                const rows = json.table.rows;
-                const catalog = document.getElementById('catalog');
-                catalog.innerHTML = '';
+<script>
+    // 1. ВСТАВТЕ ВАШ ID ТАБЛИЦІ СЮДИ
+    const SHEET_ID = 'ВАШ_ID_З_ПОСИЛАННЯ_ТАБЛИЦІ'; 
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
-                rows.forEach(row => {
-                    const card = `
-                        <div class="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
-                            <img src="${row.c[4].v}" class="w-full h-48 object-cover">
-                            <div class="p-4">
-                                <span class="text-xs font-bold text-yellow-500 uppercase">${row.c[2].v}</span>
-                                <h3 class="text-lg font-semibold mt-1">${row.c[0].v}</h3>
-                                <p class="text-gray-400 text-sm mt-2">${row.c[1].v}</p>
-                                <a href="${row.c[3].v}" target="_blank" class="block mt-4 text-center bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded-lg transition">
-                                    Скачати STL
-                                </a>
+    async function loadModels() {
+        try {
+            const response = await fetch(url);
+            const text = await response.text();
+            const json = JSON.parse(text.substr(47).slice(0, -2));
+            const rows = json.table.rows;
+            const catalog = document.getElementById('catalog');
+            catalog.innerHTML = '';
+
+            rows.forEach((row, index) => {
+                // Структура колонок: A:Назва, B:Опис, C:Категорія, D:Посилання, E:Фото
+                const name = row.c[0] ? row.c[0].v : 'Без назви';
+                const desc = row.c[1] ? row.c[1].v : '';
+                const cat  = row.c[2] ? row.c[2].v : 'Загальне';
+                const link = row.c[3] ? row.c[3].v : '#';
+                const img  = row.c[4] ? row.c[4].v : 'https://via.placeholder.com/400x200?text=No+Image';
+
+                const cardHtml = `
+                    <div class="col-12 col-md-6 model-card" data-name="${name.toLowerCase()}">
+                        <div class="card shadow">
+                            <img src="${img}" class="model-img" alt="${name}">
+                            <div class="card-body">
+                                <span class="badge badge-category mb-2">${cat}</span>
+                                <h5 class="card-title">${name}</h5>
+                                <p class="card-text small text-muted">${desc}</p>
+                                <div class="d-grid shadow-sm">
+                                    <a href="${link}" target="_blank" class="btn btn-warning">
+                                        <i class="bi bi-download me-2"></i>Завантажити STL
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                    `;
-                    catalog.innerHTML += card;
-                });
+                    </div>
+                `;
+                catalog.innerHTML += cardHtml;
             });
-    </script>
+        } catch (e) {
+            document.getElementById('catalog').innerHTML = '<p class="text-center text-danger">Помилка завантаження бази. Перевірте публікацію таблиці.</p>';
+        }
+    }
+
+    // Простий пошук по сторінці
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        const text = e.target.value.toLowerCase();
+        document.querySelectorAll('.model-card').forEach(card => {
+            const name = card.getAttribute('data-name');
+            card.style.display = name.includes(text) ? 'block' : 'none';
+        });
+    });
+
+    loadModels();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
