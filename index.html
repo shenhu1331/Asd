@@ -3,59 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UA 3D HUB</title>
+    <title>3D UA HUB</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        :root { --accent: #ffc107; --bg: #0f0f0f; --card-bg: #1a1a1a; }
-        body { background-color: var(--bg); color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .nav-pills .nav-link { color: #888; border-radius: 12px; font-weight: 600; border: 1px solid #333; margin: 0 5px; }
-        .nav-pills .nav-link.active { background-color: var(--accent); color: #000; border-color: var(--accent); }
-        .card { background: var(--card-bg); border: 1px solid #333; border-radius: 15px; overflow: hidden; height: 100%; transition: transform 0.2s; }
-        .card:active { transform: scale(0.96); }
-        .img-container { position: relative; height: 160px; background: #222; }
+        :root { --accent: #ffc107; --bg: #0b0b0b; --card-bg: #161616; }
+        body { background-color: var(--bg); color: #e0e0e0; font-family: sans-serif; overflow-x: hidden; }
+        .nav-pills .nav-link { color: #888; border-radius: 10px; border: 1px solid #222; margin: 0 4px; font-size: 0.9rem; }
+        .nav-pills .nav-link.active { background-color: var(--accent); color: #000; font-weight: bold; }
+        .card { background: var(--card-bg); border: 1px solid #222; border-radius: 12px; height: 100%; transition: 0.2s; }
+        .img-container { height: 140px; position: relative; background: #222; border-radius: 12px 12px 0 0; overflow: hidden; }
         .img-container img { width: 100%; height: 100%; object-fit: cover; }
-        .badge-tag { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 6px; }
-        .search-box { background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 12px; padding: 12px; margin-bottom: 20px; }
-        .search-box:focus { background: #222; border-color: var(--accent); color: white; box-shadow: none; }
+        .badge-tag { position: absolute; top: 8px; left: 8px; font-size: 9px; text-transform: uppercase; }
+        .search-box { background: #161616; border: 1px solid #333; color: white; border-radius: 10px; padding: 10px; margin-bottom: 15px; }
+        .search-box:focus { background: #1a1a1a; border-color: var(--accent); color: white; box-shadow: none; }
+        .btn-download { background: var(--accent); color: #000; font-weight: bold; font-size: 0.8rem; border-radius: 8px; }
     </style>
 </head>
 <body>
 
 <div class="container py-3">
-    <input type="text" id="mainSearch" class="form-control search-box" placeholder="🔍 Назва моделі...">
+    <input type="text" id="mainSearch" class="form-control search-box" placeholder="🔍 Пошук за назвою...">
 
-    <ul class="nav nav-pills mb-4 justify-content-center" id="pills-tab" role="tablist">
+    <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" id="tab-ua" data-bs-toggle="pill" data-bs-target="#content-ua">🇺🇦 UA База</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="tab-trends" data-bs-toggle="pill" data-bs-target="#content-trends">🔥 Світ</button>
+            <button class="nav-link" id="tab-trends" data-bs-toggle="pill" data-bs-target="#content-trends">🌍 Світові Тренди</button>
         </li>
     </ul>
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="content-ua">
-            <div id="catalog-ua" class="row g-3">
+            <div id="catalog-ua" class="row g-2">
                 <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
             </div>
         </div>
         <div class="tab-pane fade" id="content-trends">
-            <div id="catalog-trends" class="row g-3">
-                <div class="text-center py-5 text-muted small">Натисніть "Світ", щоб підтягнути тренди...</div>
+            <div id="catalog-trends" class="row g-2">
+                <div class="text-center py-5 text-muted small">Натисніть "Світові Тренди" для оновлення...</div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- НАЛАШТУВАННЯ ---
-    const SHEET_ID = 'ВСТАВ_ID_ТАБЛИЦІ_СЮДИ'; // Твій ID з Google Sheets
+    // ⚠️ ЗАМІНИ ЦЕЙ ID НА СВІЙ
+    const SHEET_ID = 'ВСТАВ_ID_ТАБЛИЦІ_ТУТ'; 
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-    const TRENDS_RSS = 'https://www.thingiverse.com/rss/popular';
 
-    // Функція перекладу
-    async function translate(text) {
+    // Перекладач
+    async function translateText(text) {
         try {
             const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=uk&dt=t&q=${encodeURIComponent(text)}`);
             const data = await res.json();
@@ -63,7 +62,7 @@
         } catch { return text; }
     }
 
-    // Завантаження Google Таблиці
+    // Завантаження вашої таблиці
     async function loadUA() {
         const container = document.getElementById('catalog-ua');
         try {
@@ -71,67 +70,64 @@
             const text = await res.text();
             const json = JSON.parse(text.substr(47).slice(0, -2));
             const items = json.table.rows.map(r => ({
-                title: r.c[0]?.v || 'Без назви',
+                title: r.c[0]?.v || 'Модель',
                 link: r.c[3]?.v || '#',
-                img: r.c[4]?.v || 'https://via.placeholder.com/400x200',
+                img: r.c[4]?.v || 'https://via.placeholder.com/300x200',
                 badge: 'UA'
             }));
             render(items, 'catalog-ua');
         } catch (e) {
-            container.innerHTML = '<div class="text-center text-danger">Перевірте ID таблиці та її публікацію</div>';
+            container.innerHTML = '<div class="text-center text-danger small p-4">Помилка завантаження бази. Перевірте публікацію таблиці.</div>';
         }
     }
 
-    // Завантаження Трендов (через проксі allorigins)
+    // Завантаження Трендов (Thingiverse RSS через AllOrigins Proxy)
     async function loadTrends() {
         const container = document.getElementById('catalog-trends');
-        container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div><br><small>Парсимо тренди...</small></div>';
+        container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning spinner-border-sm"></div><br><small>Шукаю тренди...</small></div>';
         
         try {
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(TRENDS_RSS)}`;
-            const res = await fetch(proxyUrl);
+            const proxy = 'https://api.allorigins.win/get?url=';
+            const target = encodeURIComponent('https://www.thingiverse.com/rss/popular');
+            const res = await fetch(proxy + target);
             const data = await res.json();
             
             const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-            const items = xmlDoc.querySelectorAll("item");
+            const xml = parser.parseFromString(data.contents, "text/xml");
+            const items = xml.querySelectorAll("item");
             
-            let trendModels = [];
+            let results = [];
             for (let i = 0; i < Math.min(items.length, 12); i++) {
                 const title = items[i].querySelector("title").textContent;
                 const link = items[i].querySelector("link").textContent;
                 const desc = items[i].querySelector("description").textContent;
-                const img = desc.match(/src="([^"]+)"/)?.[1] || 'https://via.placeholder.com/400x200';
+                const img = desc.match(/src="([^"]+)"/)?.[1] || 'https://via.placeholder.com/300x200';
                 
-                const ukTitle = await translate(title); // Перекладаємо на льоту
-                trendModels.push({ title: ukTitle, link: link, img: img, badge: '🔥 HOT' });
+                const translatedTitle = await translateText(title);
+                results.push({ title: translatedTitle, link: link, img: img, badge: 'TREND' });
             }
-            render(trendModels, 'catalog-trends');
+            render(results, 'catalog-trends');
         } catch (e) {
-            container.innerHTML = '<div class="text-center text-muted">Не вдалося завантажити тренди.</div>';
+            container.innerHTML = '<div class="text-center text-muted small p-4">Не вдалося завантажити тренди. Спробуйте через хвилину.</div>';
         }
     }
 
-    // Рендер карток
     function render(items, containerId) {
         const container = document.getElementById(containerId);
         container.innerHTML = items.map(item => `
             <div class="col-6 col-md-4 item-card" data-title="${item.title.toLowerCase()}">
-                <div class="card">
-                    <div class="img-container">
+                <div class="card p-2">
+                    <div class="img-container mb-2">
                         <span class="badge ${item.badge === 'UA' ? 'bg-primary' : 'bg-danger'} badge-tag">${item.badge}</span>
                         <img src="${item.img}" loading="lazy">
                     </div>
-                    <div class="p-2 text-center">
-                        <div class="text-truncate mb-2 fw-bold" style="font-size: 0.8rem;">${item.title}</div>
-                        <a href="${item.link}" target="_blank" class="btn btn-sm btn-warning w-100 fw-bold">Завантажити</a>
-                    </div>
+                    <div class="text-truncate mb-2 px-1 fw-bold" style="font-size: 0.75rem;">${item.title}</div>
+                    <a href="${item.link}" target="_blank" class="btn btn-download w-100 py-1">STL</a>
                 </div>
             </div>
         `).join('');
     }
 
-    // Пошук
     document.getElementById('mainSearch').addEventListener('input', (e) => {
         const q = e.target.value.toLowerCase();
         document.querySelectorAll('.item-card').forEach(c => {
@@ -139,7 +135,6 @@
         });
     });
 
-    // Старт
     loadUA();
     document.getElementById('tab-trends').addEventListener('click', loadTrends, {once: true});
 </script>
